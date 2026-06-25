@@ -1,0 +1,531 @@
+// ===============================
+// WORK MANAGEMENT SYSTEM - ERD
+// 20 TABLES
+// ===============================
+
+// ===============================
+// ENUMS
+// ===============================
+
+Enum user_status {
+  active
+  inactive
+  deleted
+}
+
+Enum common_status {
+  active
+  inactive
+}
+
+Enum member_status {
+  active
+  inactive
+}
+
+Enum project_status {
+  draft
+  active
+  completed
+  archived
+}
+
+Enum pbi_type {
+  feature
+  bug
+  improvement
+  task
+  other
+}
+
+Enum pbi_status {
+  new
+  ready
+  in_sprint
+  completed
+  on_hold
+}
+
+Enum priority_level {
+  low
+  medium
+  high
+  urgent
+}
+
+Enum sprint_status {
+  planning
+  active
+  completed
+  cancelled
+}
+
+Enum task_status {
+  to_do
+  in_progress
+  review
+  done
+  reopened
+  cancelled
+}
+
+Enum comment_status {
+  active
+  edited
+  deleted
+}
+
+Enum notification_status {
+  unread
+  read
+}
+
+
+// ===============================
+// 1. USERS
+// ===============================
+
+Table users {
+  id bigint [pk, increment]
+  full_name varchar(255) [not null]
+  email varchar(255) [not null, unique]
+  username varchar(100) [not null, unique]
+  password_hash varchar(255) [not null]
+  phone varchar(20)
+  avatar_url varchar(500)
+  status user_status [not null, default: 'active']
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+
+// ===============================
+// 2. ROLES
+// ===============================
+
+Table roles {
+  id bigint [pk, increment]
+  name varchar(100) [not null]
+  description text
+  scope varchar(50) [not null, note: 'workspace, team, project, system']
+}
+
+
+// ===============================
+// 3. PERMISSIONS
+// ===============================
+
+Table permissions {
+  id bigint [pk, increment]
+  code varchar(100) [not null, unique]
+  name varchar(100) [not null]
+  module varchar(100) [not null]
+  description text
+}
+
+
+// ===============================
+// 4. ROLE_PERMISSIONS
+// ===============================
+
+Table role_permissions {
+  role_id bigint [not null]
+  permission_id bigint [not null]
+
+  indexes {
+    (role_id, permission_id) [pk]
+  }
+}
+
+
+// ===============================
+// 5. WORKSPACES
+// ===============================
+
+Table workspaces {
+  id bigint [pk, increment]
+  owner_user_id bigint [not null]
+  name varchar(255) [not null]
+  description text
+  status common_status [not null, default: 'active']
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+
+// ===============================
+// 6. WORKSPACE_MEMBERS
+// ===============================
+
+Table workspace_members {
+  id bigint [pk, increment]
+  workspace_id bigint [not null]
+  user_id bigint [not null]
+  role_id bigint [not null]
+  added_by_owner_id bigint
+  status member_status [not null, default: 'active']
+  joined_at datetime [not null]
+  removed_at datetime
+
+  indexes {
+    (workspace_id, user_id) [unique]
+  }
+}
+
+
+// ===============================
+// 7. TEAMS
+// ===============================
+
+Table teams {
+  id bigint [pk, increment]
+  workspace_id bigint [not null]
+  name varchar(255) [not null]
+  description text
+  status common_status [not null, default: 'active']
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+
+// ===============================
+// 8. TEAM_MEMBERS
+// ===============================
+
+Table team_members {
+  id bigint [pk, increment]
+  team_id bigint [not null]
+  workspace_member_id bigint [not null]
+  role_id bigint [not null]
+  added_by_workspace_member_id bigint
+  status member_status [not null, default: 'active']
+  joined_at datetime [not null]
+  removed_at datetime
+
+  indexes {
+    (team_id, workspace_member_id) [unique]
+  }
+}
+
+
+// ===============================
+// 9. PROJECTS
+// ===============================
+
+Table projects {
+  id bigint [pk, increment]
+  team_id bigint [not null]
+  project_manager_member_id bigint [not null]
+  code varchar(50) [not null, unique]
+  name varchar(255) [not null]
+  description text
+  objective text
+  scope text
+  start_date date
+  end_date date
+  status project_status [not null, default: 'active']
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+
+// ===============================
+// 10. PROJECT_MEMBERS
+// ===============================
+
+Table project_members {
+  id bigint [pk, increment]
+  project_id bigint [not null]
+  team_member_id bigint [not null]
+  role_id bigint [not null]
+  status member_status [not null, default: 'active']
+  joined_at datetime [not null]
+  removed_at datetime
+
+  indexes {
+    (project_id, team_member_id) [unique]
+  }
+}
+
+
+// ===============================
+// 11. PRODUCT_BACKLOGS
+// ===============================
+
+Table product_backlogs {
+  id bigint [pk, increment]
+  project_id bigint [not null, unique]
+  name varchar(255) [not null]
+  description text
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+
+// ===============================
+// 12. PRODUCT_BACKLOG_ITEMS
+// ===============================
+
+Table product_backlog_items {
+  id bigint [pk, increment]
+  backlog_id bigint [not null]
+  sprint_id bigint
+  proposer_member_id bigint
+  title varchar(255) [not null]
+  description text
+  type pbi_type [not null, default: 'feature']
+  priority priority_level [not null, default: 'medium']
+  status pbi_status [not null, default: 'new']
+  desired_due_date date
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+
+// ===============================
+// 13. SPRINTS
+// ===============================
+
+Table sprints {
+  id bigint [pk, increment]
+  project_id bigint [not null]
+  name varchar(255) [not null]
+  goal text
+  start_date date [not null]
+  end_date date [not null]
+  status sprint_status [not null, default: 'planning']
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+
+// ===============================
+// 14. WORKFLOW_STATES
+// ===============================
+
+Table workflow_states {
+  id bigint [pk, increment]
+  project_id bigint [not null]
+  name varchar(100) [not null]
+  code varchar(100) [not null]
+  position int [not null]
+  is_default boolean [not null, default: false]
+  is_final boolean [not null, default: false]
+
+  indexes {
+    (project_id, code) [unique]
+  }
+}
+
+
+// ===============================
+// 15. WORKFLOW_TRANSITIONS
+// ===============================
+
+Table workflow_transitions {
+  id bigint [pk, increment]
+  project_id bigint [not null]
+  from_state_id bigint [not null]
+  to_state_id bigint [not null]
+  name varchar(255)
+
+  indexes {
+    (project_id, from_state_id, to_state_id) [unique]
+  }
+}
+
+
+// ===============================
+// 16. TASKS
+// ===============================
+
+Table tasks {
+  id bigint [pk, increment]
+  pbi_id bigint [not null]
+  sprint_id bigint
+  parent_task_id bigint
+  assignee_member_id bigint
+  reporter_member_id bigint [not null]
+  reviewer_member_id bigint
+  workflow_state_id bigint
+  title varchar(255) [not null]
+  description text
+  priority priority_level [not null, default: 'medium']
+  status task_status [not null, default: 'to_do']
+  progress int [not null, default: 0, note: '0 - 100']
+  start_date date
+  deadline date
+  completed_at datetime
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+
+// ===============================
+// 17. COMMENTS
+// ===============================
+
+Table comments {
+  id bigint [pk, increment]
+  task_id bigint [not null]
+  project_member_id bigint [not null]
+  parent_comment_id bigint
+  content text [not null]
+  status comment_status [not null, default: 'active']
+  created_at datetime [not null]
+  updated_at datetime
+  deleted_at datetime
+}
+
+
+// ===============================
+// 18. ATTACHMENTS
+// ===============================
+
+Table attachments {
+  id bigint [pk, increment]
+  uploaded_by_member_id bigint [not null]
+  project_id bigint
+  task_id bigint
+  comment_id bigint
+  file_name varchar(255) [not null]
+  file_type varchar(100)
+  file_size bigint
+  file_url varchar(500) [not null]
+  uploaded_at datetime [not null]
+
+  note: 'Một file chỉ nên thuộc một trong ba đối tượng: project, task hoặc comment.'
+}
+
+
+// ===============================
+// 19. NOTIFICATIONS
+// ===============================
+
+Table notifications {
+  id bigint [pk, increment]
+  receiver_user_id bigint [not null]
+  sender_user_id bigint
+  project_id bigint
+  pbi_id bigint
+  sprint_id bigint
+  task_id bigint
+  comment_id bigint
+  title varchar(255) [not null]
+  content text
+  type varchar(100)
+  status notification_status [not null, default: 'unread']
+  sent_at datetime [not null]
+  read_at datetime
+}
+
+
+// ===============================
+// 20. ACTIVITY_LOGS
+// ===============================
+
+Table activity_logs {
+  id bigint [pk, increment]
+  actor_user_id bigint [not null]
+  project_id bigint
+  pbi_id bigint
+  sprint_id bigint
+  task_id bigint
+  comment_id bigint
+  action varchar(100) [not null]
+  target_type varchar(100)
+  target_id bigint
+  old_value text
+  new_value text
+  created_at datetime [not null]
+}
+
+
+// ===============================
+// RELATIONSHIPS
+// ===============================
+
+// Role - Permission
+Ref: role_permissions.role_id > roles.id
+Ref: role_permissions.permission_id > permissions.id
+
+// User - Workspace
+Ref: workspaces.owner_user_id > users.id
+
+// Workspace Member
+Ref: workspace_members.workspace_id > workspaces.id
+Ref: workspace_members.user_id > users.id
+Ref: workspace_members.role_id > roles.id
+Ref: workspace_members.added_by_owner_id > users.id
+
+// Workspace - Team
+Ref: teams.workspace_id > workspaces.id
+
+// Team Member
+Ref: team_members.team_id > teams.id
+Ref: team_members.workspace_member_id > workspace_members.id
+Ref: team_members.role_id > roles.id
+Ref: team_members.added_by_workspace_member_id > workspace_members.id
+
+// Project
+Ref: projects.team_id > teams.id
+Ref: projects.project_manager_member_id > team_members.id
+
+// Project Member
+Ref: project_members.project_id > projects.id
+Ref: project_members.team_member_id > team_members.id
+Ref: project_members.role_id > roles.id
+
+// Product Backlog
+Ref: product_backlogs.project_id > projects.id
+
+// Product Backlog Item
+Ref: product_backlog_items.backlog_id > product_backlogs.id
+Ref: product_backlog_items.sprint_id > sprints.id
+Ref: product_backlog_items.proposer_member_id > project_members.id
+
+// Sprint
+Ref: sprints.project_id > projects.id
+
+// Workflow
+Ref: workflow_states.project_id > projects.id
+Ref: workflow_transitions.project_id > projects.id
+Ref: workflow_transitions.from_state_id > workflow_states.id
+Ref: workflow_transitions.to_state_id > workflow_states.id
+
+// Task
+Ref: tasks.pbi_id > product_backlog_items.id
+Ref: tasks.sprint_id > sprints.id
+Ref: tasks.parent_task_id > tasks.id
+Ref: tasks.assignee_member_id > project_members.id
+Ref: tasks.reporter_member_id > project_members.id
+Ref: tasks.reviewer_member_id > project_members.id
+Ref: tasks.workflow_state_id > workflow_states.id
+
+// Comment
+Ref: comments.task_id > tasks.id
+Ref: comments.project_member_id > project_members.id
+Ref: comments.parent_comment_id > comments.id
+
+// Attachment
+Ref: attachments.uploaded_by_member_id > project_members.id
+Ref: attachments.project_id > projects.id
+Ref: attachments.task_id > tasks.id
+Ref: attachments.comment_id > comments.id
+
+// Notification
+Ref: notifications.receiver_user_id > users.id
+Ref: notifications.sender_user_id > users.id
+Ref: notifications.project_id > projects.id
+Ref: notifications.pbi_id > product_backlog_items.id
+Ref: notifications.sprint_id > sprints.id
+Ref: notifications.task_id > tasks.id
+Ref: notifications.comment_id > comments.id
+
+// Activity Log
+Ref: activity_logs.actor_user_id > users.id
+Ref: activity_logs.project_id > projects.id
+Ref: activity_logs.pbi_id > product_backlog_items.id
+Ref: activity_logs.sprint_id > sprints.id
+Ref: activity_logs.task_id > tasks.id
+Ref: activity_logs.comment_id > comments.id
