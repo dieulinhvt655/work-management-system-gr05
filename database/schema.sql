@@ -253,30 +253,6 @@ CREATE TABLE workflow_states (
                                                        ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-CREATE TABLE workflow_transitions (
-                                                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                                    project_id BIGINT NOT NULL,
-                                                    from_state_id BIGINT NOT NULL,
-                                                    to_state_id BIGINT NOT NULL,
-                                                    name VARCHAR(255),
-
-                                                    UNIQUE KEY uq_workflow_transitions_project_from_to
-                                                        (project_id, from_state_id, to_state_id),
-
-                                                    CHECK (from_state_id <> to_state_id),
-
-                                                    CONSTRAINT fk_workflow_transitions_project
-                                                        FOREIGN KEY (project_id) REFERENCES projects(id)
-                                                            ON UPDATE CASCADE ON DELETE CASCADE,
-
-                                                    CONSTRAINT fk_workflow_transitions_from_state
-                                                        FOREIGN KEY (from_state_id) REFERENCES workflow_states(id)
-                                                            ON UPDATE CASCADE ON DELETE CASCADE,
-
-                                                    CONSTRAINT fk_workflow_transitions_to_state
-                                                        FOREIGN KEY (to_state_id) REFERENCES workflow_states(id)
-                                                            ON UPDATE CASCADE ON DELETE CASCADE
-);
 
 CREATE TABLE workflow_transitions (
                                                     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -299,58 +275,6 @@ CREATE TABLE workflow_transitions (
                                                     CONSTRAINT fk_workflow_transitions_to_state
                                                         FOREIGN KEY (to_state_id) REFERENCES workflow_states(id)
                                                             ON UPDATE CASCADE ON DELETE CASCADE
-);
-
-CREATE TABLE tasks (
-                                     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                     pbi_id BIGINT NOT NULL,
-                                     sprint_id BIGINT,
-                                     parent_task_id BIGINT,
-                                     assignee_member_id BIGINT,
-                                     reporter_member_id BIGINT NOT NULL,
-                                     reviewer_member_id BIGINT,
-                                     workflow_state_id BIGINT,
-                                     title VARCHAR(255) NOT NULL,
-                                     description TEXT,
-                                     priority ENUM('low', 'medium', 'high', 'urgent') NOT NULL DEFAULT 'medium',
-                                     status ENUM('to_do', 'in_progress', 'review', 'done', 'reopened', 'cancelled') NOT NULL DEFAULT 'to_do',
-                                     progress INT NOT NULL DEFAULT 0,
-                                     start_date DATE,
-                                     deadline DATE,
-                                     completed_at DATETIME,
-                                     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                     updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-
-                                     CHECK (progress BETWEEN 0 AND 100),
-                                     CHECK (start_date IS NULL OR deadline IS NULL OR deadline >= start_date),
-
-                                     CONSTRAINT fk_tasks_pbi
-                                         FOREIGN KEY (pbi_id) REFERENCES product_backlog_items(id)
-                                             ON UPDATE CASCADE ON DELETE CASCADE,
-
-                                     CONSTRAINT fk_tasks_sprint
-                                         FOREIGN KEY (sprint_id) REFERENCES sprints(id)
-                                             ON UPDATE CASCADE ON DELETE SET NULL,
-
-                                     CONSTRAINT fk_tasks_parent_task
-                                         FOREIGN KEY (parent_task_id) REFERENCES tasks(id)
-                                             ON UPDATE CASCADE ON DELETE SET NULL,
-
-                                     CONSTRAINT fk_tasks_assignee_member
-                                         FOREIGN KEY (assignee_member_id) REFERENCES project_members(id)
-                                             ON UPDATE CASCADE ON DELETE SET NULL,
-
-                                     CONSTRAINT fk_tasks_reporter_member
-                                         FOREIGN KEY (reporter_member_id) REFERENCES project_members(id)
-                                             ON UPDATE CASCADE ON DELETE RESTRICT,
-
-                                     CONSTRAINT fk_tasks_reviewer_member
-                                         FOREIGN KEY (reviewer_member_id) REFERENCES project_members(id)
-                                             ON UPDATE CASCADE ON DELETE SET NULL,
-
-                                     CONSTRAINT fk_tasks_workflow_state
-                                         FOREIGN KEY (workflow_state_id) REFERENCES workflow_states(id)
-                                             ON UPDATE CASCADE ON DELETE SET NULL
 );
 
 CREATE TABLE tasks (
@@ -427,43 +351,6 @@ CREATE TABLE comments (
                                         CONSTRAINT fk_comments_parent_comment
                                             FOREIGN KEY (parent_comment_id) REFERENCES comments(id)
                                                 ON UPDATE CASCADE ON DELETE SET NULL
-);
-
-CREATE TABLE attachments (
-                                           id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                           uploaded_by_member_id BIGINT NOT NULL,
-                                           project_id BIGINT,
-                                           task_id BIGINT,
-                                           comment_id BIGINT,
-                                           file_name VARCHAR(255) NOT NULL,
-                                           file_type VARCHAR(100),
-                                           file_size BIGINT,
-                                           file_url VARCHAR(500) NOT NULL,
-                                           uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-                                           CHECK (
-                                               (project_id IS NOT NULL) +
-                                               (task_id IS NOT NULL) +
-                                               (comment_id IS NOT NULL) = 1
-                                               ),
-
-                                           CHECK (file_size IS NULL OR file_size >= 0),
-
-                                           CONSTRAINT fk_attachments_uploaded_by_member
-                                               FOREIGN KEY (uploaded_by_member_id) REFERENCES project_members(id)
-                                                   ON UPDATE CASCADE ON DELETE RESTRICT,
-
-                                           CONSTRAINT fk_attachments_project
-                                               FOREIGN KEY (project_id) REFERENCES projects(id)
-                                                   ON UPDATE CASCADE ON DELETE CASCADE,
-
-                                           CONSTRAINT fk_attachments_task
-                                               FOREIGN KEY (task_id) REFERENCES tasks(id)
-                                                   ON UPDATE CASCADE ON DELETE CASCADE,
-
-                                           CONSTRAINT fk_attachments_comment
-                                               FOREIGN KEY (comment_id) REFERENCES comments(id)
-                                                   ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE attachments (
