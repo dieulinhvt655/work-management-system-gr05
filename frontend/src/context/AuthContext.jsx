@@ -1,6 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import api, { clearAuthStorage, setAuthTokens } from '../api/axios'
+import { isMockSession, mockLogin } from '../api/mockAuth'
 import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from '../constants/auth'
+import { MOCK_ACCESS_TOKEN, USE_MOCK_AUTH } from '../constants/config'
+import { createMockUser } from '../constants/mock/rolePermissions'
+import { MOCK_ROLES } from '../constants/roles'
 
 const AuthContext = createContext(null)
 
@@ -39,6 +43,11 @@ export function AuthProvider({ children }) {
       return
     }
 
+    if (isMockSession(token)) {
+      setIsLoading(false)
+      return
+    }
+
     fetchCurrentUser()
       .catch(() => {
         clearAuthStorage()
@@ -49,49 +58,81 @@ export function AuthProvider({ children }) {
       })
   }, [fetchCurrentUser, persistUser])
 
-  const login = useCallback(async (credentials) => {
-    const { data } = await api.post('/auth/login', credentials)
-    const payload = unwrapResponse({ data })
+  const login = useCallback(
+    async ({ email, password, mockRole }) => {
+      if (USE_MOCK_AUTH) {
+        const mockUser = mockLogin({
+          mockRole: mockRole ?? MOCK_ROLES.TEAM_MEMBER,
+          email: email || undefined,
+        })
+        setAuthTokens({
+          accessToken: MOCK_ACCESS_TOKEN,
+          refreshToken: 'mock-refresh-token',
+        })
+        persistUser(mockUser)
+        return mockUser
+      }
 
-    setAuthTokens({
-      accessToken: payload.accessToken ?? payload.token,
-      refreshToken: payload.refreshToken,
-    })
+      const { data } = await api.post('/auth/login', { email, password })
+      const payload = unwrapResponse({ data })
 
-    if (payload.user) {
-      persistUser(payload.user)
-      return payload.user
-    }
+      setAuthTokens({
+        accessToken: payload.accessToken ?? payload.token,
+        refreshToken: payload.refreshToken,
+      })
 
-    return fetchCurrentUser()
-  }, [fetchCurrentUser, persistUser])
+      if (payload.user) {
+        persistUser(payload.user)
+        return payload.user
+      }
 
-  const register = useCallback(async (payload) => {
-    const { data } = await api.post('/auth/register', payload)
-    return unwrapResponse({ data })
-  }, [])
+      return fetchCurrentUser()
+    },
+    [fetchCurrentUser, persistUser],
+  )
+
+  const switchMockRole = useCallback(
+    (mockRole) => {
+      if (!USE_MOCK_AUTH) return
+
+      const nextUser = createMockUser(mockRole, user?.email)
+      setAuthTokens({
+        accessToken: MOCK_ACCESS_TOKEN,
+        refreshToken: 'mock-refresh-token',
+      })
+      persistUser(nextUser)
+      return nextUser
+    },
+    [persistUser, user?.email],
+  )
 
   const logout = useCallback(async () => {
-    try {
-      await api.post('/auth/logout')
-    } catch {
-      // Ignore logout errors and clear local session anyway.
-    } finally {
-      clearAuthStorage()
-      persistUser(null)
+    const token = localStorage.getItem(AUTH_TOKEN_KEY)
+
+    if (!isMockSession(token)) {
+      try {
+        await api.post('/auth/logout')
+      } catch {
+        // Ignore logout errors and clear local session anyway.
+      }
     }
+
+    clearAuthStorage()
+    persistUser(null)
   }, [persistUser])
 
   const value = useMemo(
     () => ({
       user,
+      permissions: user?.permissions ?? [],
       isAuthenticated: Boolean(user),
       isLoading,
       login,
-      register,
       logout,
+      switchMockRole,
+      isMockAuthEnabled: USE_MOCK_AUTH,
     }),
-    [user, isLoading, login, register, logout],
+    [user, isLoading, login, logout, switchMockRole],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
