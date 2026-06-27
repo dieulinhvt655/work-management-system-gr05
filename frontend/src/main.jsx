@@ -5,6 +5,9 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import AppRoutes from './routes'
 import './assets/styles/layout.css'
+import './assets/styles/project.css'
+import './assets/styles/users.css'
+import './assets/styles/workspaces.css'
 import './index.css'
 
 const queryClient = new QueryClient({

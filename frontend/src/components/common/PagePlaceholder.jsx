@@ -1,10 +1,7 @@
-export default function PagePlaceholder({ title, description }) {
+export default function PagePlaceholder() {
   return (
-    <div className="page">
-      <header className="page__header">
-        <h1>{title}</h1>
-        {description && <p className="page__description">{description}</p>}
-      </header>
+    <div className="page page-placeholder">
+      <p className="page-placeholder__text">Trang đang được phát triển.</p>
     </div>
   )
 }

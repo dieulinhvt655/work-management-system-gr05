@@ -1,0 +1,16 @@
+export const WORKSPACE_STATUS = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  DISABLED: 'DISABLED',
+}
+
+export const WORKSPACE_STATUS_LABELS = {
+  [WORKSPACE_STATUS.ACTIVE]: 'Active',
+  [WORKSPACE_STATUS.INACTIVE]: 'Inactive',
+  [WORKSPACE_STATUS.DISABLED]: 'Disabled',
+}
+
+export const CREATE_WORKSPACE_STATUS_OPTIONS = [
+  { value: WORKSPACE_STATUS.ACTIVE, label: 'Active' },
+  { value: WORKSPACE_STATUS.INACTIVE, label: 'Inactive' },
+]

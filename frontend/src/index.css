@@ -19,6 +19,11 @@
   --color-danger: #dc2626;
   --color-danger-hover: #b91c1c;
 
+  /* Interactive accent — hover / active items */
+  --color-accent: #2563eb;
+  --color-accent-soft: #eff6ff;
+  --color-accent-soft-hover: #dbeafe;
+
   /* Layout */
   --sidebar-width: 240px;
   --header-height: 56px;

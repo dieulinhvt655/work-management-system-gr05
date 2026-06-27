@@ -6,4 +6,5 @@ export const loginSchema = z.object({
     .min(1, 'Vui lòng nhập email')
     .email('Email không hợp lệ'),
   password: z.string().min(1, 'Vui lòng nhập mật khẩu'),
+  mockRole: z.string().optional(),
 })

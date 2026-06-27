@@ -6,15 +6,19 @@ import AuthBrand from '../../components/common/AuthBrand'
 import Button from '../../components/ui/Button'
 import PasswordField from '../../components/ui/PasswordField'
 import TextField from '../../components/ui/TextField'
+import { USE_MOCK_AUTH } from '../../constants/config'
+import { MOCK_ROLE_LABELS, MOCK_ROLES } from '../../constants/roles'
 import { useAuth } from '../../context/AuthContext'
+import { getDefaultRoute } from '../../utils/navUtils'
 import { getErrorMessage } from '../../utils/getErrorMessage'
 import { loginSchema } from './loginSchema'
 import '../../assets/styles/auth.css'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, isMockAuthEnabled } = useAuth()
   const [submitError, setSubmitError] = useState('')
+  const showMockLogin = isMockAuthEnabled ?? USE_MOCK_AUTH
 
   const {
     register,
@@ -25,6 +29,7 @@ export default function LoginPage() {
     defaultValues: {
       email: '',
       password: '',
+      mockRole: MOCK_ROLES.TEAM_MEMBER,
     },
   })
 
@@ -32,8 +37,12 @@ export default function LoginPage() {
     setSubmitError('')
 
     try {
-      await login(values)
-      navigate('/dashboard', { replace: true })
+      const user = await login({
+        email: values.email,
+        password: values.password,
+        mockRole: showMockLogin ? values.mockRole : undefined,
+      })
+      navigate(getDefaultRoute(user?.permissions), { replace: true })
     } catch (error) {
       setSubmitError(getErrorMessage(error, 'Email hoặc mật khẩu không đúng.'))
     }
@@ -53,6 +62,25 @@ export default function LoginPage() {
           <p className="auth-form__error" role="alert">
             {submitError}
           </p>
+        )}
+
+        {showMockLogin && (
+          <div className="field">
+            <label className="field__label" htmlFor="mockRole">
+              Mock role (dev)
+            </label>
+            <select
+              id="mockRole"
+              className="field__input"
+              {...register('mockRole')}
+            >
+              {Object.entries(MOCK_ROLES).map(([key, value]) => (
+                <option key={key} value={value}>
+                  {MOCK_ROLE_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
 
         <TextField

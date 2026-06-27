@@ -1,4 +1,7 @@
 import { useAuth } from '../../context/AuthContext'
+import HeaderNotifications from './HeaderNotifications'
+import HeaderUserMenu from './HeaderUserMenu'
+import MockRoleSwitcher from './MockRoleSwitcher'
 
 export default function Header() {
   const { user, logout } = useAuth()
@@ -8,10 +11,9 @@ export default function Header() {
       <p className="header__title">Hệ thống Quản lý Công việc</p>
 
       <div className="header__actions">
-        {user?.email && <span className="header__user">{user.email}</span>}
-        <button type="button" className="btn btn--ghost" onClick={logout}>
-          Đăng xuất
-        </button>
+        <MockRoleSwitcher />
+        <HeaderNotifications />
+        <HeaderUserMenu user={user} onLogout={logout} />
       </div>
     </header>
   )
