@@ -1,0 +1,43 @@
+---
+description: Work Management System — cấu trúc monorepo và quy ước chung
+alwaysApply: true
+---
+
+# Work Management System
+
+Monorepo: `backend/` (Spring Boot 4 + JPA + MySQL), `frontend/` (React + Vite).
+
+## Module backend
+
+Mỗi feature nằm trong `backend/src/main/java/com/workmanagement/backend/<module>/`:
+
+- `controller/` — REST, prefix `/api/v1/...`
+- `service/` — nghiệp vụ, `@Transactional`
+- `repository/` — Spring Data JPA
+- `entity/` — JPA entities (Hibernate `ddl-auto=update`, không cần SQL thủ công)
+- `dto/request/`, `dto/response/` — DTO + `@Valid`
+- `mapper/` — entity ↔ DTO
+- `AGENTS.md` — use cases thuộc module (đọc trước khi implement)
+
+Modules: `auth`, `user`, `security`, `workspace`, `team`, `project`, `productbacklog`, `task`, `sprint`, `comment`, `attachment`, `activitylog`, `dashboard`, `notification`.
+
+## Quy ước chung
+
+- Response API: bọc trong `ApiResponse<T>` (`success`, `data`, `message`, `errorCode`)
+- Lỗi nghiệp vụ: `BusinessException` + mã từ `ErrorCode` (prefix `AUTH_`, `USER_`, `ROLE_`, …)
+- RBAC: permission code dạng `module:action` (vd. `role:read`); bảo vệ service bằng `@PreAuthorize("hasAuthority('...')")`
+- Seed data: `DataInitializer` (CommandLineRunner), không dùng SQL thủ công khi dev
+- Unit test: JUnit 5 + Mockito; profile `test` dùng H2 in-memory
+- Commit/PR: chỉ khi user yêu cầu; không commit secrets
+
+## Frontend
+
+- Proxy Vite: `/api` → `http://localhost:8080`
+- Backend thật dùng path `/api/v1/...`; unwrap response qua `data.data ?? data`
+- Auth: JWT access + refresh token; logout gửi `refreshToken` để revoke
+
+## Phạm vi khi implement
+
+- Đọc `AGENTS.md` của module trước — không implement use case thuộc module khác
+- Diff tối thiểu, khớp pattern code hiện có
+- Message lỗi/thành công: tiếng Việt

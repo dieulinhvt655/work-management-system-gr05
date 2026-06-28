@@ -1,0 +1,46 @@
+---
+description: React frontend — API, auth, cấu trúc thư mục
+globs: frontend/**/*.{jsx,js,tsx,ts}
+alwaysApply: false
+---
+
+# Frontend React Conventions
+
+## Cấu trúc
+
+```
+frontend/src/
+  api/          — axios instance, API calls
+  components/   — UI tái sử dụng
+  context/      — React context (AuthContext, …)
+  hooks/        — custom hooks (usePermission, …)
+  pages/        — route pages theo feature
+  constants/    — config, mock data, navigation
+  routes/       — React Router
+```
+
+## API
+
+- Dùng `api` từ `src/api/axios.js` (baseURL `/api`, proxy → `:8080`)
+- Backend path: `/api/v1/...` (vd. `/api/v1/auth/login`)
+- Unwrap response: `response.data?.data ?? response.data`
+- Lỗi API: `success: false`, `errorCode`, `message`
+
+## Auth
+
+- Tokens: `localStorage` — `accessToken`, `refreshToken`, `user`
+- Interceptor tự refresh khi 401; endpoint refresh: `POST /api/v1/auth/refresh`
+- Logout: `POST /api/v1/auth/logout` với `{ refreshToken }`, rồi `clearAuthStorage()`
+- Mock auth: flag `USE_MOCK_AUTH` trong `constants/config.js` — không dùng khi wire API thật
+
+## Components
+
+- Functional components + hooks
+- Permission check: `usePermission()` hook
+- Giữ UI đơn giản, khớp pattern page/component hiện có
+
+## Không làm
+
+- Không hardcode API URL full domain (dùng proxy Vite)
+- Không bỏ qua unwrap `ApiResponse` wrapper
+- Không commit secrets vào source

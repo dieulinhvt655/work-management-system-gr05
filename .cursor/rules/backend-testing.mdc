@@ -1,0 +1,54 @@
+---
+description: Unit test backend — JUnit 5, Mockito, MockMvc
+globs: backend/src/test/**/*.java
+alwaysApply: false
+---
+
+# Backend Testing
+
+## Stack
+
+- JUnit 5 + `@ExtendWith(MockitoExtension.class)` cho service test
+- Mockito: mock repository, mapper, service phụ thuộc
+- Controller: `MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new GlobalExceptionHandler())`
+- Integration smoke: `@SpringBootTest` + `@ActiveProfiles("test")` (H2)
+
+## Service test pattern
+
+```java
+@ExtendWith(MockitoExtension.class)
+class XxxServiceTest {
+    @Mock private XxxRepository repository;
+    @InjectMocks private XxxService service;
+
+    @Test
+    void method_shouldExpectedBehavior() {
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        // assert + verify
+    }
+}
+```
+
+## Controller test
+
+- Không load full Spring Security context (tránh 403 giả)
+- JSON body dùng text block; assert `$.success`, `$.data`, `$.errorCode`
+- Test cả happy path và `BusinessException` → HTTP status đúng
+
+## Auth tests (đã có mẫu)
+
+- `AuthServiceTest`, `RefreshTokenServiceTest`, `AuthControllerTest`
+- `JwtTokenProviderTest`, `RoleServiceTest`, `PermissionServiceTest`
+
+## Chạy test
+
+```bash
+cd backend && mvn test
+cd backend && mvn test -Dtest=AuthServiceTest
+```
+
+## Không làm
+
+- Không test trivial getter/setter
+- Không phụ thuộc MySQL dev DB trong unit test
+- Chỉ thêm test có ý nghĩa cho behavior thật

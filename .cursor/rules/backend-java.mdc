@@ -1,0 +1,61 @@
+---
+description: Spring Boot backend — layer, API, RBAC, JPA
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Backend Java Conventions
+
+## Layer flow
+
+```
+Controller → Service → Repository → Entity
+              ↓
+           Mapper (entity ↔ DTO)
+```
+
+- Controller: chỉ validate input, gọi service, trả `ApiResponse.success(...)`
+- Service: logic nghiệp vụ; read-only dùng `@Transactional(readOnly = true)`
+- Không trả entity trực tiếp — luôn map sang Response DTO
+
+## API
+
+- Base path: `/api/v1/<resource>`
+- DTO request: `@Getter @Setter` + Jakarta `@Valid` / `@NotBlank` / `@Email`
+- Response DTO: `@Getter @Builder` (immutable)
+- Comment use case: `/** UC-x.x — Mô tả */` trên endpoint
+
+## RBAC & Auth
+
+- JWT access token chứa `userId` + `permissions`
+- Refresh token: opaque UUID, hash SHA-256 lưu bảng `refresh_tokens`
+- `@PreAuthorize` trên service method (không chỉ controller)
+- Lấy user hiện tại: `SecurityUtils.getCurrentUserId()`
+
+## JPA Entity
+
+- `@Entity` + `@Table(name = "snake_case")`
+- Enum: class trong `common/enums/` + `*Converter` nếu cần
+- Timestamp: `createdAt` (`@PrePersist`), `updatedAt` (`@PreUpdate`)
+- Quan hệ lazy: `@ManyToOne(fetch = FetchType.LAZY)`
+
+## Ví dụ controller
+
+```java
+@PostMapping
+public ApiResponse<RoleResponse> create(@Valid @RequestBody CreateRoleRequest request) {
+    return ApiResponse.success(roleService.create(request), "Tạo vai trò thành công");
+}
+```
+
+## Ví dụ lỗi nghiệp vụ
+
+```java
+throw new BusinessException(ErrorCode.ROLE_NOT_FOUND, "Không tìm thấy vai trò");
+```
+
+## Không làm
+
+- Không dùng SQL migration thủ công trừ khi được yêu cầu
+- Không hardcode role/permission — dùng seed + `@PreAuthorize`
+- Không thêm dependency/file không liên quan task
