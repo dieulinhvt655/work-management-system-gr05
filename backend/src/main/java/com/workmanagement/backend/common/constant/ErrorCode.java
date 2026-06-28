@@ -53,6 +53,7 @@ public final class ErrorCode {
 
     // --- Attachment ---
     public static final String ATTACHMENT_NOT_FOUND = "ATT_001"; /** Không tìm thấy tài liệu đính kèm. */
+    public static final String ATTACHMENT_ACCESS_DENIED = "ATT_002"; /** Không có quyền thao tác tệp đính kèm. */
 
     // --- Product Backlog ---
     public static final String BACKLOG_NOT_FOUND = "PBL_001"; /** Không tìm thấy product backlog. */
@@ -77,5 +78,9 @@ public final class ErrorCode {
     public static final String SPRINT_PBI_INVALID = "SPR_004"; /** PBI không thể thêm vào hoặc gỡ khỏi sprint. */
     public static final String SPRINT_CANNOT_COMPLETE = "SPR_005"; /** Sprint còn công việc chưa kết thúc. */
     public static final String SPRINT_ACCESS_DENIED = "SPR_006"; /** Không có quyền xem tiến độ sprint. */
+
+    // --- Comment ---
+    public static final String COMMENT_NOT_FOUND = "CMT_001"; /** Không tìm thấy bình luận. */
+    public static final String COMMENT_ACCESS_DENIED = "CMT_002"; /** Không có quyền thao tác bình luận. */
 
 }

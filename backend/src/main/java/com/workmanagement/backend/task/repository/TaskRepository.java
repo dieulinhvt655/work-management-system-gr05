@@ -22,4 +22,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     List<Task> findBySprintIdAndPbiId(Long sprintId, Long pbiId);
 
+    Optional<Task> findByIdAndPbi_Backlog_Project_Id(Long id, Long projectId);
+
 }

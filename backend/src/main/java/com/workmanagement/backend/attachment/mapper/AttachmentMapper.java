@@ -11,6 +11,8 @@ public class AttachmentMapper {
         return AttachmentResponse.builder()
                 .id(attachment.getId())
                 .projectId(attachment.getProject() != null ? attachment.getProject().getId() : null)
+                .taskId(attachment.getTaskId())
+                .commentId(attachment.getCommentId())
                 .fileName(attachment.getFileName())
                 .fileType(attachment.getFileType())
                 .fileSize(attachment.getFileSize())

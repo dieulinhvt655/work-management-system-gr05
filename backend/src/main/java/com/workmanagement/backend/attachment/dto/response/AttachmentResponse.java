@@ -11,6 +11,8 @@ public class AttachmentResponse {
 
     private Long id;
     private Long projectId;
+    private Long taskId;
+    private Long commentId;
     private String fileName;
     private String fileType;
     private Long fileSize;

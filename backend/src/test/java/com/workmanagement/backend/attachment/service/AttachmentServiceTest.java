@@ -8,6 +8,9 @@ import com.workmanagement.backend.attachment.entity.Attachment;
 import com.workmanagement.backend.attachment.mapper.AttachmentMapper;
 import com.workmanagement.backend.attachment.repository.AttachmentRepository;
 import com.workmanagement.backend.common.constant.ErrorCode;
+import com.workmanagement.backend.comment.entity.Comment;
+import com.workmanagement.backend.comment.repository.CommentRepository;
+import com.workmanagement.backend.common.enums.CommentStatus;
 import com.workmanagement.backend.common.enums.CommonStatus;
 import com.workmanagement.backend.common.enums.MemberStatus;
 import com.workmanagement.backend.common.enums.ProjectStatus;
@@ -17,6 +20,10 @@ import com.workmanagement.backend.project.entity.Project;
 import com.workmanagement.backend.project.entity.ProjectMember;
 import com.workmanagement.backend.project.repository.ProjectMemberRepository;
 import com.workmanagement.backend.project.service.ProjectService;
+import com.workmanagement.backend.productbacklog.entity.ProductBacklog;
+import com.workmanagement.backend.productbacklog.entity.ProductBacklogItem;
+import com.workmanagement.backend.task.entity.Task;
+import com.workmanagement.backend.task.repository.TaskRepository;
 import com.workmanagement.backend.team.entity.Team;
 import com.workmanagement.backend.team.entity.TeamMember;
 import com.workmanagement.backend.team.service.TeamService;
@@ -64,6 +71,10 @@ class AttachmentServiceTest {
     private TeamService teamService;
     @Mock
     private ActivityLogService activityLogService;
+    @Mock
+    private CommentRepository commentRepository;
+    @Mock
+    private TaskRepository taskRepository;
 
     @InjectMocks
     private AttachmentService attachmentService;
@@ -112,7 +123,7 @@ class AttachmentServiceTest {
 
         when(projectService.getProject(10L, 20L, 30L)).thenReturn(project);
         doNothing().when(projectService).verifyProjectAccess(project);
-        when(attachmentRepository.findByProjectIdOrderByUploadedAtDesc(30L)).thenReturn(List.of(attachment));
+        when(attachmentRepository.findByProjectIdAndCommentIdIsNullOrderByUploadedAtDesc(30L)).thenReturn(List.of(attachment));
         when(attachmentMapper.toResponse(attachment)).thenReturn(response);
 
         List<AttachmentResponse> result = attachmentService.findByProject(10L, 20L, 30L);
@@ -168,7 +179,7 @@ class AttachmentServiceTest {
 
         when(projectService.getProject(10L, 20L, 30L)).thenReturn(project);
         doNothing().when(teamService).verifyCanManageProject(project.getTeam());
-        when(attachmentRepository.findByIdAndProjectId(40L, 30L)).thenReturn(Optional.of(attachment));
+        when(attachmentRepository.findByIdAndProjectIdAndCommentIdIsNull(40L, 30L)).thenReturn(Optional.of(attachment));
         when(attachmentRepository.save(attachment)).thenReturn(attachment);
         when(attachmentMapper.toResponse(attachment)).thenReturn(response);
 
@@ -182,12 +193,46 @@ class AttachmentServiceTest {
     void delete_shouldRemoveAttachment() {
         when(projectService.getProject(10L, 20L, 30L)).thenReturn(project);
         doNothing().when(teamService).verifyCanManageProject(project.getTeam());
-        when(attachmentRepository.findByIdAndProjectId(40L, 30L)).thenReturn(Optional.of(attachment));
+        when(attachmentRepository.findByIdAndProjectIdAndCommentIdIsNull(40L, 30L)).thenReturn(Optional.of(attachment));
 
         attachmentService.delete(10L, 20L, 30L, 40L);
 
         verify(fileStorageService).delete("projects/30/uuid_spec.pdf");
         verify(attachmentRepository).delete(attachment);
+    }
+
+    @Test
+    void uploadToComment_shouldStoreAttachment() {
+        MultipartFile file = new MockMultipartFile("file", "note.png", "image/png", "data".getBytes());
+        FileStorageService.StoredFile storedFile = new FileStorageService.StoredFile(
+                "projects/30/tasks/70/comments/100/uuid_note.png", "note.png", "image/png", 4
+        );
+        AttachmentResponse response = AttachmentResponse.builder().id(41L).fileName("note.png").commentId(100L).build();
+
+        ProductBacklog backlog = ProductBacklog.builder().id(50L).project(project).build();
+        ProductBacklogItem pbi = ProductBacklogItem.builder().id(60L).backlog(backlog).build();
+        Task task = Task.builder().id(70L).pbi(pbi).build();
+        Comment comment = Comment.builder().id(100L).task(task).status(CommentStatus.ACTIVE).build();
+
+        when(projectService.getProject(10L, 20L, 30L)).thenReturn(project);
+        doNothing().when(projectService).verifyProjectAccess(project);
+        when(taskRepository.findByIdAndPbi_Backlog_Project_Id(70L, 30L)).thenReturn(Optional.of(task));
+        when(commentRepository.findByIdAndTaskId(100L, 70L)).thenReturn(Optional.of(comment));
+        when(projectMemberRepository.findByProjectIdAndTeamMember_WorkspaceMember_User_IdAndStatus(
+                30L, 2L, MemberStatus.ACTIVE
+        )).thenReturn(Optional.of(projectMember));
+        when(fileStorageService.storeCommentFile(30L, 70L, 100L, file)).thenReturn(storedFile);
+        when(attachmentRepository.save(any(Attachment.class))).thenAnswer(invocation -> {
+            Attachment saved = invocation.getArgument(0);
+            saved.setId(41L);
+            return saved;
+        });
+        when(attachmentMapper.toResponse(any(Attachment.class))).thenReturn(response);
+
+        AttachmentResponse result = attachmentService.uploadToComment(10L, 20L, 30L, 70L, 100L, file);
+
+        assertThat(result.getFileName()).isEqualTo("note.png");
+        assertThat(result.getCommentId()).isEqualTo(100L);
     }
 
 }

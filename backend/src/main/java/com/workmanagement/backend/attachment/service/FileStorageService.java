@@ -49,6 +49,47 @@ public class FileStorageService {
         return new StoredFile(relativePath, originalName, file.getContentType(), file.getSize());
     }
 
+    public StoredFile storeCommentFile(Long projectId, Long taskId, Long commentId, MultipartFile file) {
+        validateFile(file);
+
+        String originalName = StringUtils.cleanPath(
+                file.getOriginalFilename() != null ? file.getOriginalFilename() : "file"
+        );
+        if (originalName.contains("..")) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tên tệp không hợp lệ");
+        }
+
+        String storedName = UUID.randomUUID() + "_" + originalName;
+        Path targetDir = Paths.get(
+                attachmentProperties.getUploadDir(),
+                "projects",
+                projectId.toString(),
+                "tasks",
+                taskId.toString(),
+                "comments",
+                commentId.toString()
+        );
+        Path targetPath = targetDir.resolve(storedName);
+
+        try {
+            Files.createDirectories(targetDir);
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Không thể lưu tệp");
+        }
+
+        String relativePath = Paths.get(
+                "projects",
+                projectId.toString(),
+                "tasks",
+                taskId.toString(),
+                "comments",
+                commentId.toString(),
+                storedName
+        ).toString();
+        return new StoredFile(relativePath, originalName, file.getContentType(), file.getSize());
+    }
+
     public Resource loadAsResource(String relativePath) {
         try {
             Path filePath = Paths.get(attachmentProperties.getUploadDir()).resolve(relativePath).normalize();
