@@ -4,11 +4,13 @@ import com.workmanagement.backend.common.response.ApiResponse;
 import com.workmanagement.backend.task.dto.request.AssignTaskRequest;
 import com.workmanagement.backend.task.dto.request.CreateTaskRequest;
 import com.workmanagement.backend.task.dto.request.UpdateTaskProgressRequest;
+import com.workmanagement.backend.task.dto.request.RejectTaskRequest;
 import com.workmanagement.backend.task.dto.request.UpdateTaskRequest;
 import com.workmanagement.backend.task.dto.response.TaskResponse;
 import com.workmanagement.backend.task.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -80,6 +82,35 @@ public class SprintTaskController {
         );
     }
 
+    /** UC-5.3 — Xóa task sprint */
+    @DeleteMapping("/{taskId}")
+    public ApiResponse<Void> delete(
+            @PathVariable Long workspaceId,
+            @PathVariable Long teamId,
+            @PathVariable Long projectId,
+            @PathVariable Long sprintId,
+            @PathVariable Long taskId
+    ) {
+        taskService.deleteSprintTask(workspaceId, teamId, projectId, sprintId, taskId);
+        return ApiResponse.success(null, "Xóa task thành công");
+    }
+
+    /** UC-5.3 — Kích hoạt task chuẩn bị vào sprint */
+    @PostMapping("/pbi/{itemId}/activate/{taskId}")
+    public ApiResponse<TaskResponse> activate(
+            @PathVariable Long workspaceId,
+            @PathVariable Long teamId,
+            @PathVariable Long projectId,
+            @PathVariable Long sprintId,
+            @PathVariable Long itemId,
+            @PathVariable Long taskId
+    ) {
+        return ApiResponse.success(
+                taskService.activatePreparationTaskInSprint(workspaceId, teamId, projectId, sprintId, itemId, taskId),
+                "Kích hoạt task vào sprint thành công"
+        );
+    }
+
     /** UC-5.4 — Xác nhận phân công */
     @PatchMapping("/{taskId}/confirm-assignment")
     public ApiResponse<TaskResponse> confirmAssignment(
@@ -139,6 +170,22 @@ public class SprintTaskController {
         return ApiResponse.success(
                 taskService.approveTask(workspaceId, teamId, projectId, sprintId, taskId),
                 "Phê duyệt task thành công"
+        );
+    }
+
+    /** UC-5.7 — Từ chối và mở lại công việc */
+    @PatchMapping("/{taskId}/reject")
+    public ApiResponse<TaskResponse> reject(
+            @PathVariable Long workspaceId,
+            @PathVariable Long teamId,
+            @PathVariable Long projectId,
+            @PathVariable Long sprintId,
+            @PathVariable Long taskId,
+            @RequestBody(required = false) RejectTaskRequest request
+    ) {
+        return ApiResponse.success(
+                taskService.rejectTask(workspaceId, teamId, projectId, sprintId, taskId, request),
+                "Từ chối task thành công"
         );
     }
 

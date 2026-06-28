@@ -23,6 +23,7 @@ import com.workmanagement.backend.sprint.repository.SprintRepository;
 import com.workmanagement.backend.task.dto.request.AssignTaskRequest;
 import com.workmanagement.backend.task.dto.request.CreateTaskRequest;
 import com.workmanagement.backend.task.dto.request.UpdateTaskProgressRequest;
+import com.workmanagement.backend.task.dto.request.RejectTaskRequest;
 import com.workmanagement.backend.task.dto.request.UpdateTaskRequest;
 import com.workmanagement.backend.task.dto.response.TaskResponse;
 import com.workmanagement.backend.task.entity.Task;
@@ -254,6 +255,9 @@ class TaskServiceTest {
         CreateTaskRequest request = new CreateTaskRequest();
         request.setTitle("Implement login");
 
+        pbi.setSprintId(80L);
+        pbi.setStatus(PbiStatus.IN_SPRINT);
+
         TaskResponse response = TaskResponse.builder().id(90L).title("Implement login").sprintId(80L).build();
 
         when(projectService.getProject(10L, 20L, 30L)).thenReturn(project);
@@ -270,6 +274,105 @@ class TaskServiceTest {
         TaskResponse result = taskService.createSprintTask(10L, 20L, 30L, 80L, 60L, request);
 
         assertThat(result.getSprintId()).isEqualTo(80L);
+    }
+
+    @Test
+    void createSprintTask_shouldRejectPbiNotInSprint() {
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setTitle("Implement login");
+
+        when(projectService.getProject(10L, 20L, 30L)).thenReturn(project);
+        when(projectService.isActiveProjectManager(project)).thenReturn(true);
+        when(sprintRepository.findByIdAndProjectId(80L, 30L)).thenReturn(Optional.of(sprint));
+        when(productBacklogItemRepository.findByIdAndBacklog_Project_Id(60L, 30L)).thenReturn(Optional.of(pbi));
+
+        assertThatThrownBy(() -> taskService.createSprintTask(10L, 20L, 30L, 80L, 60L, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.SPRINT_PBI_INVALID);
+    }
+
+    @Test
+    void activatePreparationTaskInSprint_shouldMoveTaskToSprint() {
+        pbi.setSprintId(80L);
+        pbi.setStatus(PbiStatus.IN_SPRINT);
+
+        TaskResponse response = TaskResponse.builder().id(70L).sprintId(80L).build();
+
+        when(projectService.getProject(10L, 20L, 30L)).thenReturn(project);
+        when(projectService.isActiveProjectManager(project)).thenReturn(true);
+        when(sprintRepository.findByIdAndProjectId(80L, 30L)).thenReturn(Optional.of(sprint));
+        when(productBacklogItemRepository.findByIdAndBacklog_Project_Id(60L, 30L)).thenReturn(Optional.of(pbi));
+        when(taskRepository.findByIdAndPbiId(70L, 60L)).thenReturn(Optional.of(preparationTask));
+        when(workflowStateService.ensureDefaultWorkflow(project)).thenReturn(toDoState);
+        when(taskRepository.save(preparationTask)).thenReturn(preparationTask);
+        when(taskMapper.toResponse(preparationTask)).thenReturn(response);
+
+        TaskResponse result = taskService.activatePreparationTaskInSprint(10L, 20L, 30L, 80L, 60L, 70L);
+
+        assertThat(result.getSprintId()).isEqualTo(80L);
+        assertThat(preparationTask.getSprintId()).isEqualTo(80L);
+    }
+
+    @Test
+    void deleteSprintTask_shouldDeleteTodoTask() {
+        when(projectService.getProject(10L, 20L, 30L)).thenReturn(project);
+        when(projectService.isActiveProjectManager(project)).thenReturn(true);
+        when(sprintRepository.findByIdAndProjectId(80L, 30L)).thenReturn(Optional.of(sprint));
+        when(taskRepository.findByIdAndSprintId(90L, 80L)).thenReturn(Optional.of(sprintTask));
+        when(taskRepository.existsByParentTaskId(90L)).thenReturn(false);
+
+        taskService.deleteSprintTask(10L, 20L, 30L, 80L, 90L);
+
+        verify(taskRepository).delete(sprintTask);
+    }
+
+    @Test
+    void confirmAssignment_shouldAssignMembers() {
+        AssignTaskRequest request = new AssignTaskRequest();
+        request.setAssigneeMemberId(12L);
+        request.setReviewerMemberId(11L);
+
+        TaskResponse response = TaskResponse.builder().id(90L).assigneeMemberId(12L).build();
+
+        when(projectService.getProject(10L, 20L, 30L)).thenReturn(project);
+        when(projectService.isActiveProjectManager(project)).thenReturn(true);
+        when(sprintRepository.findByIdAndProjectId(80L, 30L)).thenReturn(Optional.of(sprint));
+        when(taskRepository.findByIdAndSprintId(90L, 80L)).thenReturn(Optional.of(sprintTask));
+        when(projectMemberRepository.findByIdAndProjectId(12L, 30L)).thenReturn(Optional.of(assignee));
+        when(projectMemberRepository.findByIdAndProjectId(11L, 30L)).thenReturn(Optional.of(reporter));
+        when(taskRepository.save(sprintTask)).thenReturn(sprintTask);
+        when(taskMapper.toResponse(sprintTask)).thenReturn(response);
+
+        TaskResponse result = taskService.confirmAssignment(10L, 20L, 30L, 80L, 90L, request);
+
+        assertThat(result.getAssigneeMemberId()).isEqualTo(12L);
+    }
+
+    @Test
+    void rejectTask_shouldReopenTask() {
+        sprintTask.setStatus(TaskStatus.REVIEW);
+        sprintTask.setWorkflowState(reviewState);
+        sprintTask.setProgress(100);
+
+        RejectTaskRequest request = new RejectTaskRequest();
+        request.setReason("Need more tests");
+
+        TaskResponse response = TaskResponse.builder().id(90L).status(TaskStatus.REOPENED).build();
+
+        when(projectService.getProject(10L, 20L, 30L)).thenReturn(project);
+        when(projectService.isActiveProjectManager(project)).thenReturn(true);
+        when(sprintRepository.findByIdAndProjectId(80L, 30L)).thenReturn(Optional.of(sprint));
+        when(taskRepository.findByIdAndSprintId(90L, 80L)).thenReturn(Optional.of(sprintTask));
+        when(workflowStateService.getStateByCode(30L, "in_progress")).thenReturn(inProgressState);
+        doNothing().when(workflowTransitionService).validateTransition(30L, 3L, 2L);
+        when(taskRepository.save(sprintTask)).thenReturn(sprintTask);
+        when(taskMapper.toResponse(sprintTask)).thenReturn(response);
+
+        TaskResponse result = taskService.rejectTask(10L, 20L, 30L, 80L, 90L, request);
+
+        assertThat(result.getStatus()).isEqualTo(TaskStatus.REOPENED);
+        assertThat(sprintTask.getStatus()).isEqualTo(TaskStatus.REOPENED);
     }
 
     @Test

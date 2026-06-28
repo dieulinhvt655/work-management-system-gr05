@@ -38,6 +38,8 @@ public final class ActivityLogAction {
     public static final String TASK_STARTED = "TASK_STARTED";
     public static final String TASK_PROGRESS_UPDATED = "TASK_PROGRESS_UPDATED";
     public static final String TASK_APPROVED = "TASK_APPROVED";
+    public static final String TASK_REJECTED = "TASK_REJECTED";
+    public static final String TASK_ACTIVATED_IN_SPRINT = "TASK_ACTIVATED_IN_SPRINT";
     public static final String SPRINT_CREATED = "SPRINT_CREATED";
     public static final String SPRINT_UPDATED = "SPRINT_UPDATED";
     public static final String SPRINT_STARTED = "SPRINT_STARTED";

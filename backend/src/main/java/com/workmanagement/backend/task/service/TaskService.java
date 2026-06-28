@@ -22,6 +22,7 @@ import com.workmanagement.backend.sprint.repository.SprintRepository;
 import com.workmanagement.backend.task.dto.request.AssignTaskRequest;
 import com.workmanagement.backend.task.dto.request.CreateTaskRequest;
 import com.workmanagement.backend.task.dto.request.UpdateTaskProgressRequest;
+import com.workmanagement.backend.task.dto.request.RejectTaskRequest;
 import com.workmanagement.backend.task.dto.request.UpdateTaskRequest;
 import com.workmanagement.backend.task.dto.response.TaskResponse;
 import com.workmanagement.backend.task.entity.Task;
@@ -47,7 +48,9 @@ public class TaskService {
             PbiStatus.NEW, PbiStatus.READY, PbiStatus.ON_HOLD
     );
     private static final Set<TaskStatus> PREPARATION_DELETABLE = Set.of(TaskStatus.TO_DO, TaskStatus.CANCELLED);
+    private static final Set<TaskStatus> SPRINT_DELETABLE = Set.of(TaskStatus.TO_DO, TaskStatus.CANCELLED);
     private static final Set<SprintStatus> SPRINT_TASK_ALLOWED = Set.of(SprintStatus.PLANNING, SprintStatus.ACTIVE);
+    private static final Set<PbiStatus> SPRINT_PBI_STATUSES = Set.of(PbiStatus.IN_SPRINT);
 
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
@@ -278,6 +281,7 @@ public class TaskService {
 
         Sprint sprint = getActiveSprint(projectId, sprintId);
         ProductBacklogItem pbi = getPbi(projectId, itemId);
+        ensurePbiInSprint(pbi, sprint.getId());
         WorkflowState defaultState = workflowStateService.ensureDefaultWorkflow(project);
 
         ProjectMember reporter = resolveReporter(project);
@@ -328,6 +332,76 @@ public class TaskService {
         task = taskRepository.save(task);
         logTaskEvent(project, ActivityLogAction.TASK_UPDATED, task);
         return taskMapper.toResponse(task);
+    }
+
+    /** UC-5.3 — Kích hoạt task chuẩn bị đưa vào sprint */
+    @Transactional
+    @PreAuthorize("hasAuthority('task:update')")
+    public TaskResponse activatePreparationTaskInSprint(
+            Long workspaceId,
+            Long teamId,
+            Long projectId,
+            Long sprintId,
+            Long itemId,
+            Long taskId
+    ) {
+        Project project = projectService.getProject(workspaceId, teamId, projectId);
+        verifyProjectManager(project);
+        ensureProjectAcceptsTasks(project);
+
+        Sprint sprint = getActiveSprint(projectId, sprintId);
+        ProductBacklogItem pbi = getPbi(projectId, itemId);
+        ensurePbiInSprint(pbi, sprint.getId());
+
+        Task task = getPreparationTask(itemId, taskId);
+        ensurePreparationEditable(task);
+
+        WorkflowState defaultState = workflowStateService.ensureDefaultWorkflow(project);
+        task.setSprintId(sprint.getId());
+        task.setWorkflowState(defaultState);
+        task.setStatus(TaskStatus.TO_DO);
+        task.setProgress(0);
+        task.setCompletedAt(null);
+
+        task = taskRepository.save(task);
+        logTaskEvent(project, ActivityLogAction.TASK_ACTIVATED_IN_SPRINT, task);
+        return taskMapper.toResponse(task);
+    }
+
+    /** UC-5.3 — Xóa task trong sprint */
+    @Transactional
+    @PreAuthorize("hasAuthority('task:delete')")
+    public void deleteSprintTask(
+            Long workspaceId,
+            Long teamId,
+            Long projectId,
+            Long sprintId,
+            Long taskId
+    ) {
+        Project project = projectService.getProject(workspaceId, teamId, projectId);
+        verifyProjectManager(project);
+        ensureProjectAcceptsTasks(project);
+        getActiveSprint(projectId, sprintId);
+
+        Task task = getSprintTask(sprintId, taskId);
+
+        if (!SPRINT_DELETABLE.contains(task.getStatus())) {
+            throw new BusinessException(ErrorCode.TASK_CANNOT_DELETE, "Chỉ task chưa bắt đầu mới được xóa");
+        }
+        if (taskRepository.existsByParentTaskId(task.getId())) {
+            throw new BusinessException(ErrorCode.TASK_CANNOT_DELETE, "Không thể xóa task có sub-task");
+        }
+
+        String title = task.getTitle();
+        taskRepository.delete(task);
+        activityLogService.recordProjectEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.TASK_DELETED,
+                ActivityLogAction.TARGET_TASK,
+                taskId,
+                title,
+                project
+        );
     }
 
     /** UC-5.4 — Rà soát và xác nhận phân công */
@@ -495,6 +569,49 @@ public class TaskService {
         return taskMapper.toResponse(task);
     }
 
+    /** UC-5.7 — Từ chối và mở lại công việc */
+    @Transactional
+    @PreAuthorize("hasAuthority('task:update')")
+    public TaskResponse rejectTask(
+            Long workspaceId,
+            Long teamId,
+            Long projectId,
+            Long sprintId,
+            Long taskId,
+            RejectTaskRequest request
+    ) {
+        Project project = projectService.getProject(workspaceId, teamId, projectId);
+        getActiveSprint(projectId, sprintId);
+
+        Task task = getSprintTask(sprintId, taskId);
+        verifyCanApproveTask(project, task);
+
+        if (task.getStatus() != TaskStatus.REVIEW) {
+            throw new BusinessException(ErrorCode.TASK_INVALID_STATUS, "Chỉ từ chối task đang chờ review");
+        }
+
+        WorkflowState currentState = task.getWorkflowState();
+        WorkflowState inProgressState = workflowStateService.getStateByCode(project.getId(), "in_progress");
+        if (currentState != null) {
+            workflowTransitionService.validateTransition(
+                    project.getId(), currentState.getId(), inProgressState.getId()
+            );
+        }
+
+        task.setStatus(TaskStatus.REOPENED);
+        task.setWorkflowState(inProgressState);
+        task.setProgress(Math.min(task.getProgress(), 90));
+        task.setCompletedAt(null);
+        if (request != null && StringUtils.hasText(request.getReason())) {
+            String note = "[Từ chối] " + request.getReason().trim();
+            task.setDescription(task.getDescription() == null ? note : task.getDescription() + "\n" + note);
+        }
+
+        task = taskRepository.save(task);
+        logTaskEvent(project, ActivityLogAction.TASK_REJECTED, task);
+        return taskMapper.toResponse(task);
+    }
+
     // --- Helpers ---
 
     private ProductBacklogItem getPbi(Long projectId, Long itemId) {
@@ -529,6 +646,15 @@ public class TaskService {
     private void ensurePbiAcceptsRefinement(ProductBacklogItem pbi) {
         if (!REFINEMENT_PBI_STATUSES.contains(pbi.getStatus())) {
             throw new BusinessException(ErrorCode.PBI_INVALID_STATUS, "PBI không ở trạng thái cho phép phân rã task");
+        }
+    }
+
+    private void ensurePbiInSprint(ProductBacklogItem pbi, Long sprintId) {
+        if (!SPRINT_PBI_STATUSES.contains(pbi.getStatus()) || !sprintId.equals(pbi.getSprintId())) {
+            throw new BusinessException(
+                    ErrorCode.SPRINT_PBI_INVALID,
+                    "PBI phải thuộc sprint và ở trạng thái in_sprint"
+            );
         }
     }
 
