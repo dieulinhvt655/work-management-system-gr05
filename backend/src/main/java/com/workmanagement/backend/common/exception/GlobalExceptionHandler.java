@@ -61,7 +61,9 @@ public class GlobalExceptionHandler {
     /** Map {@code errorCode} sang HTTP status tương ứng. */
     private HttpStatus resolveStatus(String errorCode) {
         return switch (errorCode) {
-            case ErrorCode.USER_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case ErrorCode.USER_NOT_FOUND,
+                 ErrorCode.ROLE_NOT_FOUND,
+                 ErrorCode.PERMISSION_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case ErrorCode.INVALID_CREDENTIALS,
                  ErrorCode.TOKEN_EXPIRED,
                  ErrorCode.TOKEN_INVALID,

@@ -26,4 +26,9 @@ public final class ErrorCode {
     public static final String USERNAME_ALREADY_EXISTS = "USER_003"; /** Username đã được sử dụng. */
     public static final String USER_INACTIVE = "USER_004"; /** Tài khoản đã bị vô hiệu hóa (inactive/deleted). */
 
+    // --- Role & Permission ---
+    public static final String ROLE_NOT_FOUND = "ROLE_001"; /** Không tìm thấy vai trò theo id. */
+    public static final String PERMISSION_NOT_FOUND = "PERM_001"; /** Không tìm thấy quyền theo id. */
+    public static final String PERMISSION_ALREADY_EXISTS = "PERM_002"; /** Mã quyền đã tồn tại. */
+
 }

@@ -471,3 +471,14 @@ CREATE TABLE activity_logs (
 
 SHOW TABLES;
 
+SHOW TABLES;
+
+SELECT * FROM users;
+
+DELETE FROM users;
+
+SELECT * FROM roles;
+
+UPDATE roles SET name = 'Project Contributor' WHERE id = 7;
+
+SELECT * FROM permissions;
