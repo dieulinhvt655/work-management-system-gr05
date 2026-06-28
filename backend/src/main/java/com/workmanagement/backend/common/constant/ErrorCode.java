@@ -32,4 +32,10 @@ public final class ErrorCode {
     public static final String PERMISSION_NOT_FOUND = "PERM_001"; /** Không tìm thấy quyền theo id. */
     public static final String PERMISSION_ALREADY_EXISTS = "PERM_002"; /** Mã quyền đã tồn tại. */
 
+    // --- Workspace ---
+    public static final String WORKSPACE_NOT_FOUND = "WS_001"; /** Không tìm thấy workspace. */
+    public static final String WORKSPACE_ACCESS_DENIED = "WS_002"; /** Không có quyền truy cập workspace. */
+    public static final String WORKSPACE_MEMBER_NOT_FOUND = "WS_003"; /** Không tìm thấy thành viên workspace. */
+    public static final String WORKSPACE_MEMBER_ALREADY_EXISTS = "WS_004"; /** User đã là thành viên workspace. */
+
 }
