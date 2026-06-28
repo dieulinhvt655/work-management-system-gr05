@@ -38,4 +38,10 @@ public final class ErrorCode {
     public static final String WORKSPACE_MEMBER_NOT_FOUND = "WS_003"; /** Không tìm thấy thành viên workspace. */
     public static final String WORKSPACE_MEMBER_ALREADY_EXISTS = "WS_004"; /** User đã là thành viên workspace. */
 
+    // --- Team ---
+    public static final String TEAM_NOT_FOUND = "TEAM_001"; /** Không tìm thấy nhóm làm việc. */
+    public static final String TEAM_ACCESS_DENIED = "TEAM_002"; /** Không có quyền truy cập nhóm. */
+    public static final String TEAM_MEMBER_NOT_FOUND = "TEAM_003"; /** Không tìm thấy thành viên nhóm. */
+    public static final String TEAM_MEMBER_ALREADY_EXISTS = "TEAM_004"; /** Thành viên đã có trong nhóm. */
+
 }

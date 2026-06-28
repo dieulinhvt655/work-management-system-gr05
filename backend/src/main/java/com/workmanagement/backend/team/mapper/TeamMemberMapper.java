@@ -1,5 +1,32 @@
 package com.workmanagement.backend.team.mapper;
 
+import com.workmanagement.backend.security.mapper.RoleMapper;
+import com.workmanagement.backend.team.dto.response.TeamMemberResponse;
+import com.workmanagement.backend.team.entity.TeamMember;
+import com.workmanagement.backend.user.mapper.UserMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
 public class TeamMemberMapper {
+
+    private final UserMapper userMapper;
+    private final RoleMapper roleMapper;
+
+    public TeamMemberResponse toResponse(TeamMember member) {
+        return TeamMemberResponse.builder()
+                .id(member.getId())
+                .teamId(member.getTeam().getId())
+                .workspaceMemberId(member.getWorkspaceMember().getId())
+                .user(userMapper.toResponse(member.getWorkspaceMember().getUser()))
+                .role(roleMapper.toResponse(member.getRole(), List.of()))
+                .status(member.getStatus())
+                .joinedAt(member.getJoinedAt())
+                .removedAt(member.getRemovedAt())
+                .build();
+    }
 
 }

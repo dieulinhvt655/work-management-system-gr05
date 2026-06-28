@@ -143,12 +143,12 @@ public class WorkspaceService {
         return workspaceMapper.toResponse(workspaceRepository.save(workspace));
     }
 
-    Workspace getWorkspace(Long id) {
+    public Workspace getWorkspace(Long id) {
         return workspaceRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.WORKSPACE_NOT_FOUND, "Không tìm thấy workspace"));
     }
 
-    void verifyAccess(Workspace workspace) {
+    public void verifyAccess(Workspace workspace) {
         User currentUser = getCurrentUser();
         if (isSystemAdmin(currentUser)) {
             return;
@@ -164,7 +164,7 @@ public class WorkspaceService {
         throw new BusinessException(ErrorCode.WORKSPACE_ACCESS_DENIED, "Không có quyền truy cập workspace");
     }
 
-    void verifyCanManage(Workspace workspace) {
+    public void verifyCanManage(Workspace workspace) {
         User currentUser = getCurrentUser();
         if (isSystemAdmin(currentUser)) {
             return;
