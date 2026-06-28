@@ -203,11 +203,11 @@ public class DataInitializer implements CommandLineRunner {
                 "role:read",
                 "workspace:read", "workspace:create", "workspace:update", "workspace:close",
                 "team:read", "team:create", "team:update", "team:delete",
-                "project:read", "dashboard:read", "notification:read"
+                "project:read", "attachment:read", "dashboard:read", "notification:read"
         ));
 
         map.put("Workspace Member", List.of(
-                "workspace:read", "team:read", "project:read",
+                "workspace:read", "team:read", "project:read", "attachment:read",
                 "task:read", "comment:read", "comment:create", "comment:update",
                 "dashboard:read", "notification:read"
         ));
@@ -215,6 +215,7 @@ public class DataInitializer implements CommandLineRunner {
         map.put("Team Leader", List.of(
                 "team:read", "team:create", "team:update", "team:delete",
                 "project:read", "project:create", "project:update", "project:manage-members",
+                "attachment:read", "attachment:create", "attachment:delete",
                 "backlog:read", "sprint:read",
                 "task:read", "task:create", "task:update", "task:assign",
                 "comment:read", "comment:create", "comment:update",
@@ -222,7 +223,7 @@ public class DataInitializer implements CommandLineRunner {
         ));
 
         map.put("Team Member", List.of(
-                "team:read", "project:read",
+                "team:read", "project:read", "attachment:read",
                 "task:read", "task:update",
                 "comment:read", "comment:create", "comment:update",
                 "dashboard:read", "notification:read"

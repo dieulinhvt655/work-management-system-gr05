@@ -51,4 +51,7 @@ public final class ErrorCode {
     public static final String PROJECT_MEMBER_ALREADY_EXISTS = "PROJ_004"; /** Thành viên đã có trong dự án. */
     public static final String PROJECT_CODE_ALREADY_EXISTS = "PROJ_005"; /** Mã dự án đã tồn tại. */
 
+    // --- Attachment ---
+    public static final String ATTACHMENT_NOT_FOUND = "ATT_001"; /** Không tìm thấy tài liệu đính kèm. */
+
 }

@@ -5,6 +5,8 @@ import com.workmanagement.backend.activitylog.entity.ActivityLog;
 import com.workmanagement.backend.activitylog.mapper.ActivityLogMapper;
 import com.workmanagement.backend.activitylog.repository.ActivityLogRepository;
 import com.workmanagement.backend.common.response.PageResponse;
+import com.workmanagement.backend.project.entity.Project;
+import com.workmanagement.backend.project.repository.ProjectRepository;
 import com.workmanagement.backend.team.entity.Team;
 import com.workmanagement.backend.team.repository.TeamMemberRepository;
 import com.workmanagement.backend.team.repository.TeamRepository;
@@ -47,6 +49,8 @@ class ActivityLogServiceTest {
     @Mock
     private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock
+    private ProjectRepository projectRepository;
+    @Mock
     private WorkspaceService workspaceService;
 
     @InjectMocks
@@ -86,6 +90,38 @@ class ActivityLogServiceTest {
 
         assertThat(result.getItems()).hasSize(1);
         assertThat(result.getItems().get(0).getAction()).isEqualTo("TEAM_CREATED");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void findByProject_shouldReturnPagedLogs() {
+        Workspace workspace = Workspace.builder().id(10L).build();
+        Team team = Team.builder().id(20L).workspace(workspace).build();
+        Project project = Project.builder().id(30L).team(team).build();
+        User actor = User.builder().id(1L).fullName("PM").build();
+        ActivityLog log = ActivityLog.builder()
+                .id(1L)
+                .actor(actor)
+                .project(project)
+                .action("PROJECT_CREATED")
+                .targetType("PROJECT")
+                .targetId(30L)
+                .build();
+        ActivityLogResponse response = ActivityLogResponse.builder().id(1L).action("PROJECT_CREATED").build();
+
+        when(projectRepository.findByIdAndTeamId(30L, 20L)).thenReturn(java.util.Optional.of(project));
+        when(workspaceService.getWorkspace(10L)).thenReturn(workspace);
+        doNothing().when(workspaceService).verifyAccess(workspace);
+        when(activityLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(log)));
+        when(activityLogMapper.toResponse(log)).thenReturn(response);
+
+        PageResponse<ActivityLogResponse> result = activityLogService.findByProject(
+                10L, 20L, 30L, 0, 20, null, null, null, null
+        );
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getAction()).isEqualTo("PROJECT_CREATED");
     }
 
 }

@@ -15,4 +15,12 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
     boolean existsByProjectIdAndTeamMemberId(Long projectId, Long teamMemberId);
 
+    Optional<ProjectMember> findByProjectIdAndTeamMemberId(Long projectId, Long teamMemberId);
+
+    Optional<ProjectMember> findByProjectIdAndTeamMember_WorkspaceMember_User_IdAndStatus(
+            Long projectId,
+            Long userId,
+            MemberStatus status
+    );
+
 }

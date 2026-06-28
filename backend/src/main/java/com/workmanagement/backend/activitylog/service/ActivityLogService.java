@@ -5,8 +5,11 @@ import com.workmanagement.backend.activitylog.dto.response.ActivityLogResponse;
 import com.workmanagement.backend.activitylog.entity.ActivityLog;
 import com.workmanagement.backend.activitylog.mapper.ActivityLogMapper;
 import com.workmanagement.backend.activitylog.repository.ActivityLogRepository;
+import com.workmanagement.backend.common.constant.ErrorCode;
+import com.workmanagement.backend.common.exception.BusinessException;
 import com.workmanagement.backend.common.response.PageResponse;
 import com.workmanagement.backend.project.entity.Project;
+import com.workmanagement.backend.project.repository.ProjectRepository;
 import com.workmanagement.backend.team.repository.TeamMemberRepository;
 import com.workmanagement.backend.team.repository.TeamRepository;
 import com.workmanagement.backend.user.entity.User;
@@ -40,6 +43,7 @@ public class ActivityLogService {
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final ProjectRepository projectRepository;
 
     @Lazy
     @Autowired
@@ -76,6 +80,43 @@ public class ActivityLogService {
         Specification<ActivityLog> spec = workspaceActivitySpec(
                 workspaceId, teamIds, workspaceMemberIds, teamMemberIds, action, targetType, from, to
         );
+        Page<ActivityLog> result = activityLogRepository.findAll(spec, pageable);
+
+        return PageResponse.<ActivityLogResponse>builder()
+                .items(result.getContent().stream().map(activityLogMapper::toResponse).toList())
+                .page(result.getNumber())
+                .size(result.getSize())
+                .totalElements(result.getTotalElements())
+                .totalPages(result.getTotalPages())
+                .build();
+    }
+
+    /** UC-3.10 — Lịch sử hoạt động dự án */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('project:read')")
+    public PageResponse<ActivityLogResponse> findByProject(
+            Long workspaceId,
+            Long teamId,
+            Long projectId,
+            int page,
+            int size,
+            String action,
+            String targetType,
+            LocalDateTime from,
+            LocalDateTime to
+    ) {
+        Project project = projectRepository.findByIdAndTeamId(projectId, teamId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND, "Không tìm thấy dự án"));
+        if (!project.getTeam().getWorkspace().getId().equals(workspaceId)) {
+            throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND, "Không tìm thấy dự án");
+        }
+        workspaceService.verifyAccess(workspaceService.getWorkspace(workspaceId));
+
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        PageRequest pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Specification<ActivityLog> spec = projectActivitySpec(projectId, action, targetType, from, to);
         Page<ActivityLog> result = activityLogRepository.findAll(spec, pageable);
 
         return PageResponse.<ActivityLogResponse>builder()
@@ -176,6 +217,34 @@ public class ActivityLogService {
             ));
 
             predicates.add(cb.or(scopePredicates.toArray(Predicate[]::new)));
+
+            if (StringUtils.hasText(action)) {
+                predicates.add(cb.equal(root.get("action"), action.trim()));
+            }
+            if (StringUtils.hasText(targetType)) {
+                predicates.add(cb.equal(root.get("targetType"), targetType.trim()));
+            }
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), to));
+            }
+
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private Specification<ActivityLog> projectActivitySpec(
+            Long projectId,
+            String action,
+            String targetType,
+            LocalDateTime from,
+            LocalDateTime to
+    ) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("project").get("id"), projectId));
 
             if (StringUtils.hasText(action)) {
                 predicates.add(cb.equal(root.get("action"), action.trim()));
