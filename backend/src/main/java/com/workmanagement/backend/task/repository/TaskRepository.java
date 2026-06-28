@@ -18,4 +18,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     boolean existsByParentTaskId(Long parentTaskId);
 
+    long countBySprintId(Long sprintId);
+
+    List<Task> findBySprintIdAndPbiId(Long sprintId, Long pbiId);
+
 }

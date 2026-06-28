@@ -38,6 +38,13 @@ public final class ActivityLogAction {
     public static final String TASK_STARTED = "TASK_STARTED";
     public static final String TASK_PROGRESS_UPDATED = "TASK_PROGRESS_UPDATED";
     public static final String TASK_APPROVED = "TASK_APPROVED";
+    public static final String SPRINT_CREATED = "SPRINT_CREATED";
+    public static final String SPRINT_UPDATED = "SPRINT_UPDATED";
+    public static final String SPRINT_STARTED = "SPRINT_STARTED";
+    public static final String SPRINT_COMPLETED = "SPRINT_COMPLETED";
+    public static final String SPRINT_CANCELLED = "SPRINT_CANCELLED";
+    public static final String SPRINT_PBI_ADDED = "SPRINT_PBI_ADDED";
+    public static final String SPRINT_PBI_REMOVED = "SPRINT_PBI_REMOVED";
 
     public static final String TARGET_WORKSPACE = "WORKSPACE";
     public static final String TARGET_WORKSPACE_MEMBER = "WORKSPACE_MEMBER";
@@ -48,5 +55,6 @@ public final class ActivityLogAction {
     public static final String TARGET_ATTACHMENT = "ATTACHMENT";
     public static final String TARGET_PBI = "PBI";
     public static final String TARGET_TASK = "TASK";
+    public static final String TARGET_SPRINT = "SPRINT";
 
 }

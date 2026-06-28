@@ -182,7 +182,7 @@ public class TeamService {
         try {
             workspaceService.verifyCanManage(team.getWorkspace());
         } catch (BusinessException ex) {
-            if (!isActiveTeamLeader(team)) {
+            if (!isActiveTeamLeaderInternal(team)) {
                 throw new BusinessException(
                         ErrorCode.TEAM_ACCESS_DENIED,
                         "Chỉ Team Leader hoặc workspace owner mới được thao tác"
@@ -195,7 +195,11 @@ public class TeamService {
         workspaceService.verifyAccess(team.getWorkspace());
     }
 
-    private boolean isActiveTeamLeader(Team team) {
+    public boolean isActiveTeamLeader(Team team) {
+        return isActiveTeamLeaderInternal(team);
+    }
+
+    private boolean isActiveTeamLeaderInternal(Team team) {
         return teamMemberRepository.existsByTeamIdAndWorkspaceMember_User_IdAndRole_NameAndStatus(
                 team.getId(),
                 SecurityUtils.getCurrentUserId(),

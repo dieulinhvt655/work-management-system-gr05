@@ -72,5 +72,10 @@ public final class ErrorCode {
 
     // --- Sprint ---
     public static final String SPRINT_NOT_FOUND = "SPR_001"; /** Không tìm thấy sprint. */
+    public static final String SPRINT_INVALID_STATUS = "SPR_002"; /** Chuyển trạng thái sprint không hợp lệ. */
+    public static final String SPRINT_ALREADY_ACTIVE = "SPR_003"; /** Dự án đã có sprint đang hoạt động. */
+    public static final String SPRINT_PBI_INVALID = "SPR_004"; /** PBI không thể thêm vào hoặc gỡ khỏi sprint. */
+    public static final String SPRINT_CANNOT_COMPLETE = "SPR_005"; /** Sprint còn công việc chưa kết thúc. */
+    public static final String SPRINT_ACCESS_DENIED = "SPR_006"; /** Không có quyền xem tiến độ sprint. */
 
 }

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ProductBacklogItemRepository extends JpaRepository<ProductBacklogItem, Long>, JpaSpecificationExecutor<ProductBacklogItem> {
@@ -14,5 +15,9 @@ public interface ProductBacklogItemRepository extends JpaRepository<ProductBackl
 
     @Query(value = "SELECT COUNT(*) FROM tasks WHERE pbi_id = :pbiId", nativeQuery = true)
     long countTasksByPbiId(@Param("pbiId") Long pbiId);
+
+    List<ProductBacklogItem> findBySprintIdOrderByCreatedAtDesc(Long sprintId);
+
+    long countBySprintId(Long sprintId);
 
 }
