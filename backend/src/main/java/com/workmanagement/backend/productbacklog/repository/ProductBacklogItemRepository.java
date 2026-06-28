@@ -1,5 +1,6 @@
 package com.workmanagement.backend.productbacklog.repository;
 
+import com.workmanagement.backend.common.enums.PbiStatus;
 import com.workmanagement.backend.productbacklog.entity.ProductBacklogItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -19,5 +20,11 @@ public interface ProductBacklogItemRepository extends JpaRepository<ProductBackl
     List<ProductBacklogItem> findBySprintIdOrderByCreatedAtDesc(Long sprintId);
 
     long countBySprintId(Long sprintId);
+
+    @Query("SELECT COUNT(p) FROM ProductBacklogItem p WHERE p.backlog.project.id = :projectId")
+    long countByProjectId(@Param("projectId") Long projectId);
+
+    @Query("SELECT COUNT(p) FROM ProductBacklogItem p WHERE p.backlog.project.id = :projectId AND p.status = :status")
+    long countByProjectIdAndStatus(@Param("projectId") Long projectId, @Param("status") PbiStatus status);
 
 }

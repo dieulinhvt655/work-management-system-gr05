@@ -23,4 +23,6 @@ public interface SprintRepository extends JpaRepository<Sprint, Long> {
 
     boolean existsByProjectIdAndStatusAndIdNot(Long projectId, SprintStatus status, Long id);
 
+    Optional<Sprint> findFirstByProjectIdAndStatus(Long projectId, SprintStatus status);
+
 }

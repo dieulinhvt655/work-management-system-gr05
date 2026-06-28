@@ -83,4 +83,7 @@ public final class ErrorCode {
     public static final String COMMENT_NOT_FOUND = "CMT_001"; /** Không tìm thấy bình luận. */
     public static final String COMMENT_ACCESS_DENIED = "CMT_002"; /** Không có quyền thao tác bình luận. */
 
+    // --- Dashboard ---
+    public static final String DASHBOARD_ACCESS_DENIED = "DSH_001"; /** Không có quyền xem dashboard. */
+
 }
