@@ -6,7 +6,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.workmanagement.backend.auth.dto.request.LoginRequest;
 import com.workmanagement.backend.auth.dto.request.RegisterRequest;
 import com.workmanagement.backend.common.enums.RoleScope;
+import com.workmanagement.backend.productbacklog.dto.request.CreateProductBacklogItemRequest;
 import com.workmanagement.backend.project.dto.request.CreateProjectRequest;
+import com.workmanagement.backend.task.dto.request.CreateTaskRequest;
 import com.workmanagement.backend.team.dto.request.AddTeamMemberRequest;
 import com.workmanagement.backend.team.dto.request.CreateTeamRequest;
 import com.workmanagement.backend.workspace.dto.request.CreateWorkspaceRequest;
@@ -188,6 +190,40 @@ public abstract class AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"));
 
         return new ProjectTestContext(tokens, workspaceId, teamId, projectId, teamMemberId);
+    }
+
+    protected Long createPbi(ProjectTestContext context, String title) throws Exception {
+        CreateProductBacklogItemRequest request = new CreateProductBacklogItemRequest();
+        request.setTitle(title);
+
+        MvcResult result = mockMvc.perform(post(
+                        "/api/v1/workspaces/{workspaceId}/teams/{teamId}/projects/{projectId}/backlog/items",
+                        context.workspaceId(), context.teamId(), context.projectId())
+                        .with(bearer(context.tokens().accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andReturn();
+
+        return readData(result).get("id").asLong();
+    }
+
+    protected Long createPreparationTask(ProjectTestContext context, Long pbiId, String title) throws Exception {
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setTitle(title);
+
+        MvcResult result = mockMvc.perform(post(
+                        "/api/v1/workspaces/{workspaceId}/teams/{teamId}/projects/{projectId}/backlog/items/{itemId}/tasks",
+                        context.workspaceId(), context.teamId(), context.projectId(), pbiId)
+                        .with(bearer(context.tokens().accessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andReturn();
+
+        return readData(result).get("id").asLong();
     }
 
     private Long findAdminWorkspaceMemberId(String accessToken, Long workspaceId) throws Exception {
