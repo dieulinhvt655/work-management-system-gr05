@@ -40,6 +40,7 @@ public class AuthService {
     private final JwtProperties jwtProperties;
     private final AuthMapper authMapper;
     private final RefreshTokenService refreshTokenService;
+    private final PasswordResetEmailService passwordResetEmailService;
 
     @Transactional
     public LoginResponse login(LoginRequest request) {
@@ -110,7 +111,7 @@ public class AuthService {
     public void forgotPassword(ForgotPasswordRequest request) {
         userRepository.findByEmail(request.getEmail()).ifPresent(user -> {
             String resetToken = jwtTokenProvider.generatePasswordResetToken(user.getEmail());
-            log.info("[DEV] Password reset token for {}: {}", user.getEmail(), resetToken);
+            passwordResetEmailService.sendResetLink(user.getEmail(), resetToken);
         });
     }
 

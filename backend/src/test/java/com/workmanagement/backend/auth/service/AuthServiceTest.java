@@ -58,6 +58,8 @@ class AuthServiceTest {
     private AuthMapper authMapper;
     @Mock
     private RefreshTokenService refreshTokenService;
+    @Mock
+    private PasswordResetEmailService passwordResetEmailService;
 
     @InjectMocks
     private AuthService authService;
@@ -240,6 +242,7 @@ class AuthServiceTest {
         authService.forgotPassword(request);
 
         verify(jwtTokenProvider).generatePasswordResetToken("admin@test.com");
+        verify(passwordResetEmailService).sendResetLink("admin@test.com", "reset-token");
     }
 
     @Test
@@ -252,6 +255,7 @@ class AuthServiceTest {
         authService.forgotPassword(request);
 
         verify(jwtTokenProvider, never()).generatePasswordResetToken(any());
+        verify(passwordResetEmailService, never()).sendResetLink(any(), any());
     }
 
     @Test
