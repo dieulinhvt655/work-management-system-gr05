@@ -1,10 +1,13 @@
 package com.workmanagement.backend.team.service;
 
+import com.workmanagement.backend.activitylog.constant.ActivityLogAction;
+import com.workmanagement.backend.activitylog.service.ActivityLogService;
 import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.enums.CommonStatus;
 import com.workmanagement.backend.common.enums.MemberStatus;
 import com.workmanagement.backend.common.exception.BusinessException;
 import com.workmanagement.backend.common.response.PageResponse;
+import com.workmanagement.backend.common.util.SecurityUtils;
 import com.workmanagement.backend.security.repository.RoleRepository;
 import com.workmanagement.backend.team.dto.request.CreateTeamRequest;
 import com.workmanagement.backend.team.dto.request.UpdateTeamRequest;
@@ -41,6 +44,7 @@ public class TeamService {
     private final TeamMapper teamMapper;
     private final WorkspaceService workspaceService;
     private final RoleRepository roleRepository;
+    private final ActivityLogService activityLogService;
 
     /** UC-2.3 — Tạo nhóm làm việc trong workspace */
     @Transactional
@@ -57,7 +61,17 @@ public class TeamService {
                 .status(CommonStatus.ACTIVE)
                 .build();
 
-        return toResponseWithLeader(teamRepository.save(team));
+        team = teamRepository.save(team);
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.TEAM_CREATED,
+                ActivityLogAction.TARGET_TEAM,
+                team.getId(),
+                team.getName()
+        );
+
+        return toResponseWithLeader(team);
     }
 
     /** UC-2.4 — Danh sách nhóm trong workspace */
@@ -114,7 +128,17 @@ public class TeamService {
             team.setDescription(request.getDescription());
         }
 
-        return toResponseWithLeader(teamRepository.save(team));
+        team = teamRepository.save(team);
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.TEAM_UPDATED,
+                ActivityLogAction.TARGET_TEAM,
+                team.getId(),
+                team.getName()
+        );
+
+        return toResponseWithLeader(team);
     }
 
     /** UC-2.5 — Giải thể nhóm */
@@ -129,10 +153,20 @@ public class TeamService {
         }
 
         team.setStatus(CommonStatus.INACTIVE);
-        return toResponseWithLeader(teamRepository.save(team));
+        team = teamRepository.save(team);
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.TEAM_DISBANDED,
+                ActivityLogAction.TARGET_TEAM,
+                team.getId(),
+                team.getName()
+        );
+
+        return toResponseWithLeader(team);
     }
 
-    Team getTeam(Long workspaceId, Long teamId) {
+    public Team getTeam(Long workspaceId, Long teamId) {
         return teamRepository.findByIdAndWorkspaceId(teamId, workspaceId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TEAM_NOT_FOUND, "Không tìm thấy nhóm làm việc"));
     }
@@ -141,6 +175,33 @@ public class TeamService {
         if (team.getStatus() == CommonStatus.INACTIVE) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Nhóm đã giải thể, không thể thao tác");
         }
+    }
+
+    /** Team Leader hoặc workspace owner được quản lý dự án (UC-2.8) */
+    public void verifyCanManageProject(Team team) {
+        try {
+            workspaceService.verifyCanManage(team.getWorkspace());
+        } catch (BusinessException ex) {
+            if (!isActiveTeamLeader(team)) {
+                throw new BusinessException(
+                        ErrorCode.TEAM_ACCESS_DENIED,
+                        "Chỉ Team Leader hoặc workspace owner mới được thao tác"
+                );
+            }
+        }
+    }
+
+    public void verifyTeamAccess(Team team) {
+        workspaceService.verifyAccess(team.getWorkspace());
+    }
+
+    private boolean isActiveTeamLeader(Team team) {
+        return teamMemberRepository.existsByTeamIdAndWorkspaceMember_User_IdAndRole_NameAndStatus(
+                team.getId(),
+                SecurityUtils.getCurrentUserId(),
+                TEAM_LEADER_ROLE,
+                MemberStatus.ACTIVE
+        );
     }
 
     private void ensureWorkspaceActive(Workspace workspace) {

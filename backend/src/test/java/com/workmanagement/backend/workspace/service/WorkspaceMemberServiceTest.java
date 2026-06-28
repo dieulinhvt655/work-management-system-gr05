@@ -1,5 +1,6 @@
 package com.workmanagement.backend.workspace.service;
 
+import com.workmanagement.backend.activitylog.service.ActivityLogService;
 import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.enums.CommonStatus;
 import com.workmanagement.backend.common.enums.MemberStatus;
@@ -51,6 +52,8 @@ class WorkspaceMemberServiceTest {
     private UserRepository userRepository;
     @Mock
     private RoleService roleService;
+    @Mock
+    private ActivityLogService activityLogService;
 
     @InjectMocks
     private WorkspaceMemberService workspaceMemberService;

@@ -1,5 +1,7 @@
 package com.workmanagement.backend.workspace.service;
 
+import com.workmanagement.backend.activitylog.constant.ActivityLogAction;
+import com.workmanagement.backend.activitylog.service.ActivityLogService;
 import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.enums.MemberStatus;
 import com.workmanagement.backend.common.enums.RoleScope;
@@ -34,6 +36,7 @@ public class WorkspaceMemberService {
     private final WorkspaceService workspaceService;
     private final UserRepository userRepository;
     private final RoleService roleService;
+    private final ActivityLogService activityLogService;
 
     /** UC-2.6 — Danh sách thành viên workspace */
     @Transactional(readOnly = true)
@@ -79,8 +82,17 @@ public class WorkspaceMemberService {
                 .addedByOwner(currentUser)
                 .status(MemberStatus.ACTIVE)
                 .build();
+        member = workspaceMemberRepository.save(member);
 
-        return workspaceMemberMapper.toResponse(workspaceMemberRepository.save(member));
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.WORKSPACE_MEMBER_ADDED,
+                ActivityLogAction.TARGET_WORKSPACE_MEMBER,
+                member.getId(),
+                user.getFullName()
+        );
+
+        return workspaceMemberMapper.toResponse(member);
     }
 
     /** UC-2.6 — Cập nhật thông tin tổ chức thành viên (vai trò, trạng thái) */
@@ -116,7 +128,17 @@ public class WorkspaceMemberService {
             }
         }
 
-        return workspaceMemberMapper.toResponse(workspaceMemberRepository.save(member));
+        member = workspaceMemberRepository.save(member);
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.WORKSPACE_MEMBER_UPDATED,
+                ActivityLogAction.TARGET_WORKSPACE_MEMBER,
+                member.getId(),
+                role.getName()
+        );
+
+        return workspaceMemberMapper.toResponse(member);
     }
 
     private void validateWorkspaceRole(Role role) {

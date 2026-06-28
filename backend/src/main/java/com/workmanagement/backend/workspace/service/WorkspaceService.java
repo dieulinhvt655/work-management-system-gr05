@@ -1,5 +1,7 @@
 package com.workmanagement.backend.workspace.service;
 
+import com.workmanagement.backend.activitylog.constant.ActivityLogAction;
+import com.workmanagement.backend.activitylog.service.ActivityLogService;
 import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.enums.CommonStatus;
 import com.workmanagement.backend.common.enums.MemberStatus;
@@ -47,6 +49,7 @@ public class WorkspaceService {
     private final WorkspaceMapper workspaceMapper;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final ActivityLogService activityLogService;
 
     /** UC-2.1 — Tạo workspace và thêm owner làm thành viên */
     @Transactional
@@ -70,6 +73,14 @@ public class WorkspaceService {
                 .addedByOwner(owner)
                 .status(MemberStatus.ACTIVE)
                 .build());
+
+        activityLogService.recordOrgEvent(
+                owner.getId(),
+                ActivityLogAction.WORKSPACE_CREATED,
+                ActivityLogAction.TARGET_WORKSPACE,
+                workspace.getId(),
+                workspace.getName()
+        );
 
         return workspaceMapper.toResponse(workspace);
     }
@@ -125,7 +136,17 @@ public class WorkspaceService {
             workspace.setDescription(request.getDescription());
         }
 
-        return workspaceMapper.toResponse(workspaceRepository.save(workspace));
+        workspace = workspaceRepository.save(workspace);
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.WORKSPACE_UPDATED,
+                ActivityLogAction.TARGET_WORKSPACE,
+                workspace.getId(),
+                workspace.getName()
+        );
+
+        return workspaceMapper.toResponse(workspace);
     }
 
     /** UC-2.10 — Đóng / vô hiệu hoá workspace */
@@ -140,7 +161,17 @@ public class WorkspaceService {
         }
 
         workspace.setStatus(CommonStatus.INACTIVE);
-        return workspaceMapper.toResponse(workspaceRepository.save(workspace));
+        workspace = workspaceRepository.save(workspace);
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.WORKSPACE_CLOSED,
+                ActivityLogAction.TARGET_WORKSPACE,
+                workspace.getId(),
+                workspace.getName()
+        );
+
+        return workspaceMapper.toResponse(workspace);
     }
 
     public Workspace getWorkspace(Long id) {

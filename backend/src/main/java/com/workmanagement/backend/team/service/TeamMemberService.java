@@ -1,5 +1,7 @@
 package com.workmanagement.backend.team.service;
 
+import com.workmanagement.backend.activitylog.constant.ActivityLogAction;
+import com.workmanagement.backend.activitylog.service.ActivityLogService;
 import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.enums.CommonStatus;
 import com.workmanagement.backend.common.enums.MemberStatus;
@@ -42,6 +44,7 @@ public class TeamMemberService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final RoleService roleService;
     private final RoleRepository roleRepository;
+    private final ActivityLogService activityLogService;
 
     /** Danh sách thành viên nhóm */
     @Transactional(readOnly = true)
@@ -94,7 +97,17 @@ public class TeamMemberService {
                 .status(MemberStatus.ACTIVE)
                 .build();
 
-        return teamMemberMapper.toResponse(teamMemberRepository.save(member));
+        member = teamMemberRepository.save(member);
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.TEAM_MEMBER_ADDED,
+                ActivityLogAction.TARGET_TEAM_MEMBER,
+                member.getId(),
+                workspaceMember.getUser().getFullName()
+        );
+
+        return teamMemberMapper.toResponse(member);
     }
 
     /** Cập nhật vai trò / trạng thái thành viên nhóm */
@@ -133,7 +146,17 @@ public class TeamMemberService {
             }
         }
 
-        return teamMemberMapper.toResponse(teamMemberRepository.save(member));
+        member = teamMemberRepository.save(member);
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.TEAM_MEMBER_UPDATED,
+                ActivityLogAction.TARGET_TEAM_MEMBER,
+                member.getId(),
+                role.getName()
+        );
+
+        return teamMemberMapper.toResponse(member);
     }
 
     /** UC-2.7 — Gán Team Leader cho nhóm */
@@ -154,7 +177,17 @@ public class TeamMemberService {
         demoteExistingLeaders(teamId);
         member.setRole(leaderRole);
 
-        return teamMemberMapper.toResponse(teamMemberRepository.save(member));
+        member = teamMemberRepository.save(member);
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.TEAM_LEADER_ASSIGNED,
+                ActivityLogAction.TARGET_TEAM_MEMBER,
+                member.getId(),
+                member.getWorkspaceMember().getUser().getFullName()
+        );
+
+        return teamMemberMapper.toResponse(member);
     }
 
     private TeamMember getTeamMember(Long teamId, Long memberId) {

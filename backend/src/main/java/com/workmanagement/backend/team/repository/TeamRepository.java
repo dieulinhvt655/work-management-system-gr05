@@ -10,4 +10,6 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
 
     Optional<Team> findByIdAndWorkspaceId(Long id, Long workspaceId);
 
+    java.util.List<Team> findByWorkspaceId(Long workspaceId);
+
 }

@@ -1,11 +1,13 @@
 package com.workmanagement.backend.team.service;
 
+import com.workmanagement.backend.activitylog.service.ActivityLogService;
 import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.enums.CommonStatus;
 import com.workmanagement.backend.common.enums.MemberStatus;
 import com.workmanagement.backend.common.enums.RoleScope;
 import com.workmanagement.backend.common.exception.BusinessException;
 import com.workmanagement.backend.common.response.PageResponse;
+import com.workmanagement.backend.common.util.SecurityUtils;
 import com.workmanagement.backend.security.entity.Role;
 import com.workmanagement.backend.security.repository.RoleRepository;
 import com.workmanagement.backend.team.dto.request.CreateTeamRequest;
@@ -19,11 +21,14 @@ import com.workmanagement.backend.team.repository.TeamRepository;
 import com.workmanagement.backend.user.entity.User;
 import com.workmanagement.backend.workspace.entity.Workspace;
 import com.workmanagement.backend.workspace.service.WorkspaceService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -52,6 +57,8 @@ class TeamServiceTest {
     private WorkspaceService workspaceService;
     @Mock
     private RoleRepository roleRepository;
+    @Mock
+    private ActivityLogService activityLogService;
 
     @InjectMocks
     private TeamService teamService;
@@ -59,9 +66,12 @@ class TeamServiceTest {
     private Workspace workspace;
     private Team team;
     private Role teamLeaderRole;
+    private MockedStatic<SecurityUtils> securityUtils;
 
     @BeforeEach
     void setUp() {
+        securityUtils = Mockito.mockStatic(SecurityUtils.class);
+        securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(1L);
         User owner = User.builder().id(1L).fullName("Owner").build();
         workspace = Workspace.builder().id(10L).owner(owner).status(CommonStatus.ACTIVE).build();
         team = Team.builder()
@@ -72,6 +82,11 @@ class TeamServiceTest {
                 .status(CommonStatus.ACTIVE)
                 .build();
         teamLeaderRole = Role.builder().id(5L).name("Team Leader").scope(RoleScope.TEAM).build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        securityUtils.close();
     }
 
     @Test

@@ -44,4 +44,11 @@ public final class ErrorCode {
     public static final String TEAM_MEMBER_NOT_FOUND = "TEAM_003"; /** Không tìm thấy thành viên nhóm. */
     public static final String TEAM_MEMBER_ALREADY_EXISTS = "TEAM_004"; /** Thành viên đã có trong nhóm. */
 
+    // --- Project ---
+    public static final String PROJECT_NOT_FOUND = "PROJ_001"; /** Không tìm thấy dự án. */
+    public static final String PROJECT_ACCESS_DENIED = "PROJ_002"; /** Không có quyền truy cập dự án. */
+    public static final String PROJECT_MEMBER_NOT_FOUND = "PROJ_003"; /** Không tìm thấy thành viên dự án. */
+    public static final String PROJECT_MEMBER_ALREADY_EXISTS = "PROJ_004"; /** Thành viên đã có trong dự án. */
+    public static final String PROJECT_CODE_ALREADY_EXISTS = "PROJ_005"; /** Mã dự án đã tồn tại. */
+
 }
