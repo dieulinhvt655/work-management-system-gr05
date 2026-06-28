@@ -19,6 +19,7 @@ public final class ErrorCode {
     public static final String TOKEN_EXPIRED = "AUTH_002";  /** JWT đã hết hạn. */
     public static final String TOKEN_INVALID = "AUTH_003"; /** JWT không hợp lệ hoặc bị sửa đổi. */
     public static final String UNAUTHORIZED = "AUTH_004";  /** Chưa đăng nhập hoặc không có quyền truy cập. */
+    public static final String REFRESH_TOKEN_INVALID = "AUTH_005"; /** Refresh token không hợp lệ hoặc đã bị thu hồi. */
 
     // --- User ---
     public static final String USER_NOT_FOUND = "USER_001";  /** Không tìm thấy user theo id/email/username. */

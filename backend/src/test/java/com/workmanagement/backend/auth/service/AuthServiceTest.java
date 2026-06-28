@@ -2,10 +2,14 @@ package com.workmanagement.backend.auth.service;
 
 import com.workmanagement.backend.auth.dto.request.ForgotPasswordRequest;
 import com.workmanagement.backend.auth.dto.request.LoginRequest;
+import com.workmanagement.backend.auth.dto.request.LogoutRequest;
+import com.workmanagement.backend.auth.dto.request.RefreshTokenRequest;
 import com.workmanagement.backend.auth.dto.request.RegisterRequest;
 import com.workmanagement.backend.auth.dto.request.ResetPasswordRequest;
 import com.workmanagement.backend.auth.dto.response.LoginResponse;
 import com.workmanagement.backend.auth.dto.response.RegisterResponse;
+import com.workmanagement.backend.auth.dto.response.TokenResponse;
+import com.workmanagement.backend.auth.entity.RefreshToken;
 import com.workmanagement.backend.auth.mapper.AuthMapper;
 import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.enums.RoleScope;
@@ -52,11 +56,14 @@ class AuthServiceTest {
     private JwtProperties jwtProperties;
     @Mock
     private AuthMapper authMapper;
+    @Mock
+    private RefreshTokenService refreshTokenService;
 
     @InjectMocks
     private AuthService authService;
 
     private User activeUser;
+    private RefreshToken storedRefreshToken;
 
     @BeforeEach
     void setUp() {
@@ -70,28 +77,75 @@ class AuthServiceTest {
                 .status(UserStatus.ACTIVE)
                 .role(role)
                 .build();
+        storedRefreshToken = RefreshToken.builder()
+                .id(10L)
+                .user(activeUser)
+                .revoked(false)
+                .build();
     }
 
     @Test
-    void login_shouldReturnTokenWhenCredentialsValid() {
+    void login_shouldReturnTokensWhenCredentialsValid() {
         LoginRequest request = new LoginRequest();
         request.setEmail("admin@test.com");
         request.setPassword("secret");
 
         Permission permission = Permission.builder().id(1L).code("role:read").name("Read").module("role").build();
-        LoginResponse expected = LoginResponse.builder().accessToken("jwt-token").build();
+        LoginResponse expected = LoginResponse.builder()
+                .accessToken("jwt-token")
+                .refreshToken("refresh-token")
+                .build();
 
         when(userRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(activeUser));
         when(passwordEncoder.matches("secret", "encoded")).thenReturn(true);
         when(rolePermissionRepository.findPermissionsByRoleId(1L)).thenReturn(List.of(permission));
         when(jwtTokenProvider.generateAccessToken(1L, List.of("role:read"))).thenReturn("jwt-token");
+        when(refreshTokenService.createRefreshToken(activeUser)).thenReturn("refresh-token");
         when(jwtProperties.getExpiration()).thenReturn(86_400_000L);
-        when(authMapper.toLoginResponse(eq(activeUser), eq("jwt-token"), eq(86_400_000L), any()))
+        when(authMapper.toLoginResponse(eq(activeUser), eq("jwt-token"), eq("refresh-token"), eq(86_400_000L), any()))
                 .thenReturn(expected);
 
         LoginResponse result = authService.login(request);
 
         assertThat(result.getAccessToken()).isEqualTo("jwt-token");
+        assertThat(result.getRefreshToken()).isEqualTo("refresh-token");
+    }
+
+    @Test
+    void refresh_shouldRotateTokenAndReturnNewAccessToken() {
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("old-refresh-token");
+
+        TokenResponse expected = TokenResponse.builder()
+                .accessToken("new-access-token")
+                .refreshToken("new-refresh-token")
+                .build();
+
+        Permission permission = Permission.builder().id(1L).code("role:read").name("Read").module("role").build();
+
+        when(refreshTokenService.validate("old-refresh-token")).thenReturn(storedRefreshToken);
+        when(rolePermissionRepository.findPermissionsByRoleId(1L)).thenReturn(List.of(permission));
+        when(jwtTokenProvider.generateAccessToken(1L, List.of("role:read"))).thenReturn("new-access-token");
+        when(refreshTokenService.rotate(storedRefreshToken)).thenReturn("new-refresh-token");
+        when(jwtProperties.getExpiration()).thenReturn(86_400_000L);
+        when(authMapper.toTokenResponse("new-access-token", "new-refresh-token", 86_400_000L))
+                .thenReturn(expected);
+
+        TokenResponse result = authService.refresh(request);
+
+        assertThat(result.getAccessToken()).isEqualTo("new-access-token");
+        assertThat(result.getRefreshToken()).isEqualTo("new-refresh-token");
+        verify(refreshTokenService).rotate(storedRefreshToken);
+    }
+
+    @Test
+    void logout_shouldRevokeRefreshToken() {
+        LogoutRequest request = new LogoutRequest();
+        request.setRefreshToken("refresh-token");
+
+        authService.logout(request);
+
+        verify(refreshTokenService).revoke("refresh-token");
     }
 
     @Test

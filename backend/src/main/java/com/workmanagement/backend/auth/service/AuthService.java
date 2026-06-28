@@ -2,10 +2,14 @@ package com.workmanagement.backend.auth.service;
 
 import com.workmanagement.backend.auth.dto.request.ForgotPasswordRequest;
 import com.workmanagement.backend.auth.dto.request.LoginRequest;
+import com.workmanagement.backend.auth.dto.request.LogoutRequest;
+import com.workmanagement.backend.auth.dto.request.RefreshTokenRequest;
 import com.workmanagement.backend.auth.dto.request.RegisterRequest;
 import com.workmanagement.backend.auth.dto.request.ResetPasswordRequest;
 import com.workmanagement.backend.auth.dto.response.LoginResponse;
 import com.workmanagement.backend.auth.dto.response.RegisterResponse;
+import com.workmanagement.backend.auth.dto.response.TokenResponse;
+import com.workmanagement.backend.auth.entity.RefreshToken;
 import com.workmanagement.backend.auth.mapper.AuthMapper;
 import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.enums.UserStatus;
@@ -35,8 +39,9 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
     private final AuthMapper authMapper;
+    private final RefreshTokenService refreshTokenService;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Email hoặc mật khẩu không đúng"));
@@ -52,8 +57,15 @@ public class AuthService {
         List<Permission> permissions = loadPermissions(user);
         List<String> permissionCodes = permissions.stream().map(Permission::getCode).toList();
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), permissionCodes);
+        String refreshToken = refreshTokenService.createRefreshToken(user);
 
-        return authMapper.toLoginResponse(user, accessToken, jwtProperties.getExpiration(), permissions);
+        return authMapper.toLoginResponse(
+                user,
+                accessToken,
+                refreshToken,
+                jwtProperties.getExpiration(),
+                permissions
+        );
     }
 
     @Transactional
@@ -76,8 +88,22 @@ public class AuthService {
         return authMapper.toRegisterResponse(userRepository.save(user));
     }
 
-    public void logout() {
-        // JWT stateless — client xóa token. Endpoint để frontend gọi thống nhất flow UC-1.2.
+    @Transactional
+    public TokenResponse refresh(RefreshTokenRequest request) {
+        RefreshToken storedToken = refreshTokenService.validate(request.getRefreshToken());
+        User user = storedToken.getUser();
+
+        List<Permission> permissions = loadPermissions(user);
+        List<String> permissionCodes = permissions.stream().map(Permission::getCode).toList();
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), permissionCodes);
+        String newRefreshToken = refreshTokenService.rotate(storedToken);
+
+        return authMapper.toTokenResponse(accessToken, newRefreshToken, jwtProperties.getExpiration());
+    }
+
+    @Transactional
+    public void logout(LogoutRequest request) {
+        refreshTokenService.revoke(request.getRefreshToken());
     }
 
     @Transactional(readOnly = true)

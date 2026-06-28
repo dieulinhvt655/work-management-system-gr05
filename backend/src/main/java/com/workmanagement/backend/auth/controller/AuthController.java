@@ -2,10 +2,13 @@ package com.workmanagement.backend.auth.controller;
 
 import com.workmanagement.backend.auth.dto.request.ForgotPasswordRequest;
 import com.workmanagement.backend.auth.dto.request.LoginRequest;
+import com.workmanagement.backend.auth.dto.request.LogoutRequest;
+import com.workmanagement.backend.auth.dto.request.RefreshTokenRequest;
 import com.workmanagement.backend.auth.dto.request.RegisterRequest;
 import com.workmanagement.backend.auth.dto.request.ResetPasswordRequest;
 import com.workmanagement.backend.auth.dto.response.LoginResponse;
 import com.workmanagement.backend.auth.dto.response.RegisterResponse;
+import com.workmanagement.backend.auth.dto.response.TokenResponse;
 import com.workmanagement.backend.auth.service.AuthService;
 import com.workmanagement.backend.common.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -34,10 +37,16 @@ public class AuthController {
         return ApiResponse.success(authService.register(request), "Đăng ký thành công");
     }
 
-    /** UC-1.2 — Đăng xuất */
+    /** Làm mới access token bằng refresh token */
+    @PostMapping("/refresh")
+    public ApiResponse<TokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return ApiResponse.success(authService.refresh(request));
+    }
+
+    /** UC-1.2 — Đăng xuất (thu hồi refresh token) */
     @PostMapping("/logout")
-    public ApiResponse<Void> logout() {
-        authService.logout();
+    public ApiResponse<Void> logout(@Valid @RequestBody LogoutRequest request) {
+        authService.logout(request);
         return ApiResponse.success(null, "Đăng xuất thành công");
     }
 

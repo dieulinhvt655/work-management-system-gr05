@@ -4,6 +4,7 @@ import com.workmanagement.backend.auth.dto.request.LoginRequest;
 import com.workmanagement.backend.auth.dto.request.RegisterRequest;
 import com.workmanagement.backend.auth.dto.response.LoginResponse;
 import com.workmanagement.backend.auth.dto.response.RegisterResponse;
+import com.workmanagement.backend.auth.dto.response.TokenResponse;
 import com.workmanagement.backend.auth.service.AuthService;
 import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.exception.BusinessException;
@@ -46,6 +47,7 @@ class AuthControllerTest {
     void login_shouldReturn200WithToken() throws Exception {
         LoginResponse response = LoginResponse.builder()
                 .accessToken("jwt-token")
+                .refreshToken("refresh-token")
                 .tokenType("Bearer")
                 .expiresIn(86_400_000L)
                 .build();
@@ -59,7 +61,42 @@ class AuthControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.accessToken").value("jwt-token"));
+                .andExpect(jsonPath("$.data.accessToken").value("jwt-token"))
+                .andExpect(jsonPath("$.data.refreshToken").value("refresh-token"));
+    }
+
+    @Test
+    void refresh_shouldReturnNewTokens() throws Exception {
+        TokenResponse response = TokenResponse.builder()
+                .accessToken("new-access-token")
+                .refreshToken("new-refresh-token")
+                .tokenType("Bearer")
+                .expiresIn(86_400_000L)
+                .build();
+
+        when(authService.refresh(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refreshToken":"old-refresh-token"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.accessToken").value("new-access-token"))
+                .andExpect(jsonPath("$.data.refreshToken").value("new-refresh-token"));
+    }
+
+    @Test
+    void logout_shouldReturnSuccess() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refreshToken":"refresh-token"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Đăng xuất thành công"));
     }
 
     @Test

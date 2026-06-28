@@ -3,6 +3,7 @@ package com.workmanagement.backend.auth.mapper;
 import com.workmanagement.backend.auth.dto.response.AuthUserResponse;
 import com.workmanagement.backend.auth.dto.response.LoginResponse;
 import com.workmanagement.backend.auth.dto.response.RegisterResponse;
+import com.workmanagement.backend.auth.dto.response.TokenResponse;
 import com.workmanagement.backend.security.dto.response.RoleResponse;
 import com.workmanagement.backend.security.entity.Permission;
 import com.workmanagement.backend.security.mapper.RoleMapper;
@@ -18,13 +19,20 @@ public class AuthMapper {
 
     private final RoleMapper roleMapper;
 
-    public LoginResponse toLoginResponse(User user, String accessToken, long expiresIn, List<Permission> permissions) {
+    public LoginResponse toLoginResponse(
+            User user,
+            String accessToken,
+            String refreshToken,
+            long expiresIn,
+            List<Permission> permissions
+    ) {
         RoleResponse roleResponse = user.getRole() != null
                 ? roleMapper.toResponse(user.getRole(), permissions)
                 : null;
 
         return LoginResponse.builder()
                 .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(expiresIn)
                 .user(AuthUserResponse.builder()
@@ -34,6 +42,15 @@ public class AuthMapper {
                         .username(user.getUsername())
                         .role(roleResponse)
                         .build())
+                .build();
+    }
+
+    public TokenResponse toTokenResponse(String accessToken, String refreshToken, long expiresIn) {
+        return TokenResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(expiresIn)
                 .build();
     }
 
