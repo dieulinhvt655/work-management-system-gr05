@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +35,9 @@ public class DataInitializer implements CommandLineRunner {
 
     private static final String ADMIN_EMAIL = "admin@workmanagement.local";
     private static final String ADMIN_PASSWORD = "admin123";
+
+    /** Roles luôn được đồng bộ lại permission khi restart (thêm/sửa quyền trong seed). */
+    private static final Set<String> ROLES_ALWAYS_RESYNC = Set.of("System Admin", "Workspace Owner");
 
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
@@ -86,8 +90,8 @@ public class DataInitializer implements CommandLineRunner {
 
         for (Map.Entry<String, List<String>> entry : ROLE_PERMISSIONS.entrySet()) {
             Role role = findRole(entry.getKey());
-            boolean isSystemAdmin = "System Admin".equals(role.getName());
-            if (!isSystemAdmin && !rolePermissionRepository.findByRole_Id(role.getId()).isEmpty()) {
+            boolean alwaysResync = ROLES_ALWAYS_RESYNC.contains(role.getName());
+            if (!alwaysResync && !rolePermissionRepository.findByRole_Id(role.getId()).isEmpty()) {
                 continue;
             }
             rolePermissionRepository.deleteByRole_Id(role.getId());
@@ -195,7 +199,8 @@ public class DataInitializer implements CommandLineRunner {
         map.put("System Admin", all);
 
         map.put("Workspace Owner", List.of(
-                "user:read", "user:create", "user:update", "user:lock",
+                "user:read", "user:create", "user:update", "user:lock", "user:assign-role",
+                "role:read",
                 "workspace:read", "workspace:create", "workspace:update", "workspace:close",
                 "team:read", "team:create", "team:update", "team:delete",
                 "project:read", "dashboard:read", "notification:read"

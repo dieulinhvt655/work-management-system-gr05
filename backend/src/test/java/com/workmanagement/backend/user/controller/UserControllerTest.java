@@ -1,10 +1,13 @@
 package com.workmanagement.backend.user.controller;
 
+import com.workmanagement.backend.common.enums.RoleScope;
 import com.workmanagement.backend.common.enums.UserStatus;
 import com.workmanagement.backend.common.response.PageResponse;
 import com.workmanagement.backend.user.dto.request.CreateUserRequest;
 import com.workmanagement.backend.user.dto.request.UpdateProfileRequest;
+import com.workmanagement.backend.user.dto.request.UpdateUserRoleRequest;
 import com.workmanagement.backend.user.dto.response.UserResponse;
+import com.workmanagement.backend.user.dto.response.UserRoleResponse;
 import com.workmanagement.backend.user.service.UserService;
 import com.workmanagement.backend.common.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +24,9 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -150,6 +155,38 @@ class UserControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.fullName").value("Updated"));
+    }
+
+    @Test
+    void updateUserRole_shouldReturnUpdatedRole() throws Exception {
+        UserRoleResponse response = UserRoleResponse.builder()
+                .userId(2L)
+                .role(com.workmanagement.backend.security.dto.response.RoleResponse.builder()
+                        .id(1L)
+                        .name("Workspace Member")
+                        .scope(RoleScope.WORKSPACE)
+                        .build())
+                .build();
+
+        when(userService.updateUserRole(eq(2L), any(UpdateUserRoleRequest.class))).thenReturn(response);
+
+        mockMvc.perform(patch("/api/v1/users/2/role")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"roleId":1}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.role.name").value("Workspace Member"));
+    }
+
+    @Test
+    void delete_shouldReturnSuccess() throws Exception {
+        mockMvc.perform(delete("/api/v1/users/2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Xoá tài khoản thành công"));
+
+        verify(userService).delete(2L);
     }
 
 }

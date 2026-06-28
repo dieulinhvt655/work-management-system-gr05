@@ -91,9 +91,7 @@ public class UserService {
 
         if (request.getRoleId() != null) {
             Role role = roleService.getRole(request.getRoleId());
-            if (role.getScope() != RoleScope.SYSTEM) {
-                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Chỉ có thể gán vai trò hệ thống (SYSTEM scope)");
-            }
+            validateAssignableRole(role);
             user.setRole(role);
         }
 
@@ -174,16 +172,32 @@ public class UserService {
         return toDetailResponse(userRepository.save(user));
     }
 
-    /** UC-1.9 — Gán vai trò hệ thống cho người dùng */
+    /** UC-1.8 — Xoá mềm tài khoản (đặt trạng thái DELETED) */
+    @Transactional
+    @PreAuthorize("hasAuthority('user:update')")
+    public void delete(Long id) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (currentUserId.equals(id)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Không thể xoá tài khoản của chính mình");
+        }
+
+        User user = getUser(id);
+        if (user.getStatus() == UserStatus.DELETED) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND, "Không tìm thấy người dùng");
+        }
+
+        user.setStatus(UserStatus.DELETED);
+        userRepository.save(user);
+    }
+
+    /** UC-1.9 — Gán vai trò cho người dùng (SYSTEM hoặc WORKSPACE scope) */
     @Transactional
     @PreAuthorize("hasAuthority('user:assign-role')")
     public UserRoleResponse updateUserRole(Long userId, UpdateUserRoleRequest request) {
         User user = getUser(userId);
 
         Role role = roleService.getRole(request.getRoleId());
-        if (role.getScope() != RoleScope.SYSTEM) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Chỉ có thể gán vai trò hệ thống (SYSTEM scope)");
-        }
+        validateAssignableRole(role);
 
         user.setRole(role);
         userRepository.save(user);
@@ -192,6 +206,13 @@ public class UserService {
                 .userId(user.getId())
                 .role(roleService.findById(role.getId()))
                 .build();
+    }
+
+    private void validateAssignableRole(Role role) {
+        if (role.getScope() != RoleScope.SYSTEM && role.getScope() != RoleScope.WORKSPACE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "Chỉ có thể gán vai trò hệ thống hoặc workspace (SYSTEM/WORKSPACE scope)");
+        }
     }
 
     private User getCurrentUser() {

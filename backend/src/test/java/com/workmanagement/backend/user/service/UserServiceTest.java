@@ -255,20 +255,75 @@ class UserServiceTest {
     }
 
     @Test
-    void updateUserRole_shouldRejectNonSystemRole() {
-        User user = User.builder().id(1L).build();
-        Role workspaceRole = Role.builder().id(2L).name("Workspace Owner").scope(RoleScope.WORKSPACE).build();
+    void updateUserRole_shouldAssignWorkspaceRole() {
+        User user = User.builder().id(1L).email("user@test.com").build();
+        Role workspaceRole = Role.builder().id(2L).name("Workspace Member").scope(RoleScope.WORKSPACE).build();
+        RoleResponse roleResponse = RoleResponse.builder().id(2L).name("Workspace Member").scope(RoleScope.WORKSPACE).build();
 
         UpdateUserRoleRequest request = new UpdateUserRoleRequest();
         request.setRoleId(2L);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(roleService.getRole(2L)).thenReturn(workspaceRole);
+        when(roleService.findById(2L)).thenReturn(roleResponse);
+
+        UserRoleResponse result = userService.updateUserRole(1L, request);
+
+        assertThat(result.getRole().getName()).isEqualTo("Workspace Member");
+        assertThat(user.getRole()).isEqualTo(workspaceRole);
+    }
+
+    @Test
+    void updateUserRole_shouldRejectTeamOrProjectRole() {
+        User user = User.builder().id(1L).build();
+        Role teamRole = Role.builder().id(3L).name("Team Leader").scope(RoleScope.TEAM).build();
+
+        UpdateUserRoleRequest request = new UpdateUserRoleRequest();
+        request.setRoleId(3L);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(roleService.getRole(3L)).thenReturn(teamRole);
 
         assertThatThrownBy(() -> userService.updateUserRole(1L, request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.VALIDATION_ERROR);
+    }
+
+    @Test
+    void delete_shouldSoftDeleteUser() {
+        User target = User.builder().id(2L).status(UserStatus.ACTIVE).build();
+
+        securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(1L);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+
+        userService.delete(2L);
+
+        assertThat(target.getStatus()).isEqualTo(UserStatus.DELETED);
+        verify(userRepository).save(target);
+    }
+
+    @Test
+    void delete_shouldRejectSelfDelete() {
+        securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(1L);
+
+        assertThatThrownBy(() -> userService.delete(1L))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.VALIDATION_ERROR);
+    }
+
+    @Test
+    void delete_shouldThrowWhenAlreadyDeleted() {
+        User target = User.builder().id(2L).status(UserStatus.DELETED).build();
+
+        securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(1L);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+
+        assertThatThrownBy(() -> userService.delete(2L))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.USER_NOT_FOUND);
     }
 
     @Test

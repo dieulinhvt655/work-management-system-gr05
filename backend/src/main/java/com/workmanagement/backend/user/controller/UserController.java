@@ -13,6 +13,7 @@ import com.workmanagement.backend.user.dto.response.UserRoleResponse;
 import com.workmanagement.backend.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -81,6 +82,13 @@ public class UserController {
             @Valid @RequestBody UpdateUserStatusRequest request
     ) {
         return ApiResponse.success(userService.updateStatus(id, request), "Cập nhật trạng thái thành công");
+    }
+
+    /** UC-1.8 — Xoá mềm tài khoản */
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        userService.delete(id);
+        return ApiResponse.success(null, "Xoá tài khoản thành công");
     }
 
     /** UC-1.9 — Cập nhật vai trò người dùng */
