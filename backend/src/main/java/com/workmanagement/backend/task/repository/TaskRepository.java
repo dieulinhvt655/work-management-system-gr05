@@ -1,5 +1,21 @@
 package com.workmanagement.backend.task.repository;
 
-public interface TaskRepository {
+import com.workmanagement.backend.task.entity.Task;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface TaskRepository extends JpaRepository<Task, Long> {
+
+    List<Task> findByPbiIdOrderByCreatedAtDesc(Long pbiId);
+
+    Optional<Task> findByIdAndPbiId(Long id, Long pbiId);
+
+    List<Task> findBySprintIdOrderByCreatedAtDesc(Long sprintId);
+
+    Optional<Task> findByIdAndSprintId(Long id, Long sprintId);
+
+    boolean existsByParentTaskId(Long parentTaskId);
 
 }

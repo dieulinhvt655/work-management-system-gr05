@@ -54,4 +54,23 @@ public final class ErrorCode {
     // --- Attachment ---
     public static final String ATTACHMENT_NOT_FOUND = "ATT_001"; /** Không tìm thấy tài liệu đính kèm. */
 
+    // --- Product Backlog ---
+    public static final String BACKLOG_NOT_FOUND = "PBL_001"; /** Không tìm thấy product backlog. */
+    public static final String PBI_NOT_FOUND = "PBL_002"; /** Không tìm thấy Product Backlog Item. */
+    public static final String PBI_CANNOT_DELETE = "PBL_003"; /** Không thể xóa PBI (trạng thái hoặc có task). */
+    public static final String PBI_INVALID_STATUS = "PBL_004"; /** Chuyển trạng thái PBI không hợp lệ. */
+
+    // --- Task & Workflow ---
+    public static final String TASK_NOT_FOUND = "TSK_001"; /** Không tìm thấy task. */
+    public static final String TASK_CANNOT_DELETE = "TSK_002"; /** Không thể xóa task. */
+    public static final String TASK_INVALID_STATUS = "TSK_003"; /** Chuyển trạng thái task không hợp lệ. */
+    public static final String TASK_ACCESS_DENIED = "TSK_004"; /** Không có quyền thao tác task. */
+    public static final String WORKFLOW_STATE_NOT_FOUND = "WFL_001"; /** Không tìm thấy trạng thái workflow. */
+    public static final String WORKFLOW_STATE_IN_USE = "WFL_002"; /** Trạng thái workflow đang được sử dụng. */
+    public static final String WORKFLOW_TRANSITION_NOT_FOUND = "WFL_003"; /** Không tìm thấy transition. */
+    public static final String WORKFLOW_TRANSITION_INVALID = "WFL_004"; /** Transition không hợp lệ. */
+
+    // --- Sprint ---
+    public static final String SPRINT_NOT_FOUND = "SPR_001"; /** Không tìm thấy sprint. */
+
 }

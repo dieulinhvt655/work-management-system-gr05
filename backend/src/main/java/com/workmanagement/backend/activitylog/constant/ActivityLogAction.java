@@ -26,6 +26,18 @@ public final class ActivityLogAction {
     public static final String ATTACHMENT_UPLOADED = "ATTACHMENT_UPLOADED";
     public static final String ATTACHMENT_UPDATED = "ATTACHMENT_UPDATED";
     public static final String ATTACHMENT_DELETED = "ATTACHMENT_DELETED";
+    public static final String PBI_CREATED = "PBI_CREATED";
+    public static final String PBI_UPDATED = "PBI_UPDATED";
+    public static final String PBI_DELETED = "PBI_DELETED";
+    public static final String PBI_MARKED_READY = "PBI_MARKED_READY";
+    public static final String TASK_CREATED = "TASK_CREATED";
+    public static final String TASK_UPDATED = "TASK_UPDATED";
+    public static final String TASK_DELETED = "TASK_DELETED";
+    public static final String TASK_ASSIGNED = "TASK_ASSIGNED";
+    public static final String TASK_ASSIGNMENT_CONFIRMED = "TASK_ASSIGNMENT_CONFIRMED";
+    public static final String TASK_STARTED = "TASK_STARTED";
+    public static final String TASK_PROGRESS_UPDATED = "TASK_PROGRESS_UPDATED";
+    public static final String TASK_APPROVED = "TASK_APPROVED";
 
     public static final String TARGET_WORKSPACE = "WORKSPACE";
     public static final String TARGET_WORKSPACE_MEMBER = "WORKSPACE_MEMBER";
@@ -34,5 +46,7 @@ public final class ActivityLogAction {
     public static final String TARGET_PROJECT = "PROJECT";
     public static final String TARGET_PROJECT_MEMBER = "PROJECT_MEMBER";
     public static final String TARGET_ATTACHMENT = "ATTACHMENT";
+    public static final String TARGET_PBI = "PBI";
+    public static final String TARGET_TASK = "TASK";
 
 }

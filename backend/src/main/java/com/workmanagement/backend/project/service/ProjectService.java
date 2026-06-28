@@ -309,7 +309,7 @@ public class ProjectService {
         }
     }
 
-    private boolean isActiveProjectManager(Project project) {
+    public boolean isActiveProjectManager(Project project) {
         TeamMember pm = project.getProjectManagerMember();
         return pm.getStatus() == MemberStatus.ACTIVE
                 && pm.getWorkspaceMember().getUser().getId().equals(SecurityUtils.getCurrentUserId());
