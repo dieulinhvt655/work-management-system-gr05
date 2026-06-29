@@ -10,6 +10,7 @@ import lombok.Getter;
 public class UserRoleResponse {
 
     private Long userId;
+    private Long workspaceId;
     private RoleResponse role;
 
 }

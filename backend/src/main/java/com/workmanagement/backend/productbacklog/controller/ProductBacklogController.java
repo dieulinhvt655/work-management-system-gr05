@@ -20,6 +20,7 @@ public class ProductBacklogController {
 
     private final ProductBacklogService productBacklogService;
 
+    /** UC-4.4 — Xem thông tin product backlog */
     @GetMapping
     public ApiResponse<ProductBacklogResponse> findByProject(
             @PathVariable Long workspaceId,
@@ -29,6 +30,7 @@ public class ProductBacklogController {
         return ApiResponse.success(productBacklogService.findByProject(workspaceId, teamId, projectId));
     }
 
+    /** UC-4.2 — Cập nhật thông tin product backlog */
     @PutMapping
     public ApiResponse<ProductBacklogResponse> update(
             @PathVariable Long workspaceId,

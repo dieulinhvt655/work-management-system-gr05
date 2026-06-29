@@ -1,6 +1,5 @@
 package com.workmanagement.backend.user.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,7 +9,7 @@ import lombok.Setter;
 @Setter
 public class UpdateProfileRequest {
 
-    @NotBlank(message = "Họ tên không được để trống")
+    /** Chỉ giữ để tương thích request cũ; hồ sơ cá nhân không được phép tự đổi họ tên. */
     private String fullName;
 
     @Size(max = 20, message = "Số điện thoại tối đa 20 ký tự")
@@ -19,9 +18,13 @@ public class UpdateProfileRequest {
     @Size(max = 500, message = "Avatar URL tối đa 500 ký tự")
     private String avatarUrl;
 
+    @Size(max = 500, message = "Mô tả tối đa 500 ký tự")
+    private String description;
+
     private String currentPassword;
 
-    @Size(min = 6, message = "Mật khẩu mới tối thiểu 6 ký tự")
     private String newPassword;
+
+    private String confirmNewPassword;
 
 }

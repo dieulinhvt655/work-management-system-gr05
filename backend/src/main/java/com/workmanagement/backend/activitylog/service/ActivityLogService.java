@@ -128,6 +128,7 @@ public class ActivityLogService {
                 .build();
     }
 
+    /** Hỗ trợ UC-2.9, UC-3.10 — Ghi nhận hoạt động vào nhật ký */
     @Transactional
     public void record(
             Long actorUserId,
@@ -154,11 +155,13 @@ public class ActivityLogService {
                 .build());
     }
 
+    /** Hỗ trợ UC-2.9 — Ghi nhật ký hoạt động tổ chức (workspace/team) */
     @Transactional
     public void recordOrgEvent(Long actorUserId, String action, String targetType, Long targetId, String newValue) {
         record(actorUserId, action, targetType, targetId, null, newValue, null);
     }
 
+    /** Hỗ trợ UC-3.10 — Ghi nhật ký hoạt động dự án */
     @Transactional
     public void recordProjectEvent(
             Long actorUserId,

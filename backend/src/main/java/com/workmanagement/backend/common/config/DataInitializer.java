@@ -10,12 +10,14 @@ import com.workmanagement.backend.security.repository.RolePermissionRepository;
 import com.workmanagement.backend.security.repository.RoleRepository;
 import com.workmanagement.backend.user.entity.User;
 import com.workmanagement.backend.user.repository.UserRepository;
+import com.workmanagement.backend.user.util.EmployeeCodeGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -44,6 +46,7 @@ public class DataInitializer implements CommandLineRunner {
     private final RolePermissionRepository rolePermissionRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmployeeCodeGenerator employeeCodeGenerator;
 
     @Override
     @Transactional
@@ -52,6 +55,7 @@ public class DataInitializer implements CommandLineRunner {
         seedRoles();
         seedRolePermissions();
         seedAdminUser();
+        backfillMissingEmployeeCodes();
         log.info("DataInitializer completed");
     }
 
@@ -113,11 +117,22 @@ public class DataInitializer implements CommandLineRunner {
                 .fullName("System Admin")
                 .email(ADMIN_EMAIL)
                 .username("admin")
+                .employeeCode(employeeCodeGenerator.generateUnique())
                 .passwordHash(passwordEncoder.encode(ADMIN_PASSWORD))
                 .status(UserStatus.ACTIVE)
                 .role(systemAdmin)
                 .build());
         log.info("Seeded admin user: {} / {}", ADMIN_EMAIL, ADMIN_PASSWORD);
+    }
+
+    private void backfillMissingEmployeeCodes() {
+        for (User user : userRepository.findAll()) {
+            if (!StringUtils.hasText(user.getEmployeeCode())) {
+                user.setEmployeeCode(employeeCodeGenerator.generateUnique());
+                userRepository.save(user);
+                log.info("Backfilled employee code for user: {}", user.getEmail());
+            }
+        }
     }
 
     private Role findRole(String name) {

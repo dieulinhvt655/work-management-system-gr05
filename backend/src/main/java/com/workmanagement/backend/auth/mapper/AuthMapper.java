@@ -2,7 +2,6 @@ package com.workmanagement.backend.auth.mapper;
 
 import com.workmanagement.backend.auth.dto.response.AuthUserResponse;
 import com.workmanagement.backend.auth.dto.response.LoginResponse;
-import com.workmanagement.backend.auth.dto.response.RegisterResponse;
 import com.workmanagement.backend.auth.dto.response.TokenResponse;
 import com.workmanagement.backend.security.dto.response.RoleResponse;
 import com.workmanagement.backend.security.entity.Permission;
@@ -53,14 +52,4 @@ public class AuthMapper {
                 .expiresIn(expiresIn)
                 .build();
     }
-
-    public RegisterResponse toRegisterResponse(User user) {
-        return RegisterResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .username(user.getUsername())
-                .fullName(user.getFullName())
-                .build();
-    }
-
 }

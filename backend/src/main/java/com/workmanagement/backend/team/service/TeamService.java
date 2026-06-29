@@ -166,6 +166,7 @@ public class TeamService {
         return toResponseWithLeader(team);
     }
 
+    /** Hỗ trợ UC-2.4 — Tra cứu nhóm theo workspace */
     public Team getTeam(Long workspaceId, Long teamId) {
         return teamRepository.findByIdAndWorkspaceId(teamId, workspaceId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TEAM_NOT_FOUND, "Không tìm thấy nhóm làm việc"));
@@ -191,10 +192,12 @@ public class TeamService {
         }
     }
 
+    /** Hỗ trợ UC-2.4 — Kiểm tra quyền truy cập nhóm qua workspace */
     public void verifyTeamAccess(Team team) {
         workspaceService.verifyAccess(team.getWorkspace());
     }
 
+    /** Hỗ trợ UC-2.7 — Kiểm tra user hiện tại có phải Team Leader đang hoạt động */
     public boolean isActiveTeamLeader(Team team) {
         return isActiveTeamLeaderInternal(team);
     }

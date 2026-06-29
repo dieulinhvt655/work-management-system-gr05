@@ -1,13 +1,13 @@
 package com.workmanagement.backend.auth.service;
 
+import com.workmanagement.backend.activitylog.constant.ActivityLogAction;
+import com.workmanagement.backend.activitylog.service.ActivityLogService;
 import com.workmanagement.backend.auth.dto.request.ForgotPasswordRequest;
 import com.workmanagement.backend.auth.dto.request.LoginRequest;
 import com.workmanagement.backend.auth.dto.request.LogoutRequest;
 import com.workmanagement.backend.auth.dto.request.RefreshTokenRequest;
-import com.workmanagement.backend.auth.dto.request.RegisterRequest;
 import com.workmanagement.backend.auth.dto.request.ResetPasswordRequest;
 import com.workmanagement.backend.auth.dto.response.LoginResponse;
-import com.workmanagement.backend.auth.dto.response.RegisterResponse;
 import com.workmanagement.backend.auth.dto.response.TokenResponse;
 import com.workmanagement.backend.auth.entity.RefreshToken;
 import com.workmanagement.backend.auth.mapper.AuthMapper;
@@ -25,7 +25,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import java.util.Locale;
 import java.util.List;
 
 @Slf4j
@@ -40,18 +42,25 @@ public class AuthService {
     private final JwtProperties jwtProperties;
     private final AuthMapper authMapper;
     private final RefreshTokenService refreshTokenService;
+    private final ActivityLogService activityLogService;
     private final PasswordResetEmailService passwordResetEmailService;
 
+    /** UC-1.1 — Đăng nhập, cấp access token và refresh token */
     @Transactional
     public LoginResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        validateLoginRequest(request);
+
+        String email = normalizeEmail(request.getEmail());
+        String password = request.getPassword();
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Email hoặc mật khẩu không đúng"));
 
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.USER_INACTIVE, "Tài khoản đã bị vô hiệu hóa");
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "Email hoặc mật khẩu không đúng");
         }
 
@@ -59,6 +68,13 @@ public class AuthService {
         List<String> permissionCodes = permissions.stream().map(Permission::getCode).toList();
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), permissionCodes);
         String refreshToken = refreshTokenService.createRefreshToken(user);
+        activityLogService.recordOrgEvent(
+                user.getId(),
+                ActivityLogAction.USER_LOGIN,
+                ActivityLogAction.TARGET_USER,
+                user.getId(),
+                "SUCCESS"
+        );
 
         return authMapper.toLoginResponse(
                 user,
@@ -68,31 +84,20 @@ public class AuthService {
                 permissions
         );
     }
-
-    @Transactional
-    public RegisterResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS, "Email đã được đăng ký");
-        }
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new BusinessException(ErrorCode.USERNAME_ALREADY_EXISTS, "Username đã được sử dụng");
-        }
-
-        User user = User.builder()
-                .fullName(request.getFullName())
-                .email(request.getEmail())
-                .username(request.getUsername())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .status(UserStatus.ACTIVE)
-                .build();
-
-        return authMapper.toRegisterResponse(userRepository.save(user));
-    }
-
+    /** UC-1.1 — Làm mới access token bằng refresh token hợp lệ */
     @Transactional
     public TokenResponse refresh(RefreshTokenRequest request) {
-        RefreshToken storedToken = refreshTokenService.validate(request.getRefreshToken());
+        validateRefreshRequest(request);
+
+        RefreshToken storedToken = refreshTokenService.validate(request.getRefreshToken().trim());
         User user = storedToken.getUser();
+
+        if (user == null || user.getStatus() != UserStatus.ACTIVE) {
+            if (user != null && user.getId() != null) {
+                refreshTokenService.revokeAllForUser(user.getId());
+            }
+            throw new BusinessException(ErrorCode.USER_INACTIVE, "Tài khoản đã bị vô hiệu hóa");
+        }
 
         List<Permission> permissions = loadPermissions(user);
         List<String> permissionCodes = permissions.stream().map(Permission::getCode).toList();
@@ -102,11 +107,13 @@ public class AuthService {
         return authMapper.toTokenResponse(accessToken, newRefreshToken, jwtProperties.getExpiration());
     }
 
+    /** UC-1.2 — Đăng xuất, thu hồi refresh token */
     @Transactional
     public void logout(LogoutRequest request) {
         refreshTokenService.revoke(request.getRefreshToken());
     }
 
+    /** UC-1.3 — Gửi email khôi phục mật khẩu nếu email tồn tại */
     @Transactional(readOnly = true)
     public void forgotPassword(ForgotPasswordRequest request) {
         userRepository.findByEmail(request.getEmail()).ifPresent(user -> {
@@ -115,6 +122,7 @@ public class AuthService {
         });
     }
 
+    /** UC-1.3 — Đặt lại mật khẩu bằng reset token */
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         jwtTokenProvider.validateToken(request.getToken());
@@ -136,6 +144,31 @@ public class AuthService {
             return List.of();
         }
         return rolePermissionRepository.findPermissionsByRoleId(user.getRole().getId());
+    }
+
+    private void validateLoginRequest(LoginRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Dữ liệu đăng nhập không được để trống");
+        }
+        if (!StringUtils.hasText(request.getEmail())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Email không được để trống");
+        }
+        if (!StringUtils.hasText(request.getPassword())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mật khẩu không được để trống");
+        }
+    }
+
+    private void validateRefreshRequest(RefreshTokenRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Dữ liệu refresh token không được để trống");
+        }
+        if (!StringUtils.hasText(request.getRefreshToken())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Refresh token không được để trống");
+        }
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 
 }

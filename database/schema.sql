@@ -1,17 +1,63 @@
 USE work_management_system;
 
-CREATE TABLE users (
-                                     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                     full_name VARCHAR(255) NOT NULL,
-                                     email VARCHAR(255) NOT NULL UNIQUE,
-                                     username VARCHAR(100) NOT NULL UNIQUE,
-                                     password_hash VARCHAR(255) NOT NULL,
-                                     phone VARCHAR(20),
-                                     avatar_url VARCHAR(500),
-                                     status ENUM('active', 'inactive', 'deleted') NOT NULL DEFAULT 'active',
-                                     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                     updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
-);
+# CREATE TABLE users (
+#                                      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+#                                      full_name VARCHAR(255) NOT NULL,
+#                                      email VARCHAR(255) NOT NULL UNIQUE,
+#                                      username VARCHAR(100) NOT NULL UNIQUE,
+#                                      password_hash VARCHAR(255) NOT NULL,
+#                                      phone VARCHAR(20),
+#                                      avatar_url VARCHAR(500),
+#                                      employee_code VARCHAR(6) NOT NULL UNIQUE,
+#                                      description TEXT,
+#                                      status ENUM('active', 'inactive', 'deleted') NOT NULL DEFAULT 'active',
+#                                      role_id BIGINT,
+#                                      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+#                                      updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+#
+#                                      CONSTRAINT fk_users_role
+#                                          FOREIGN KEY (role_id) REFERENCES roles(id)
+#                                              ON UPDATE CASCADE ON DELETE SET NULL
+# );
+
+# ===============================
+# MIGRATION — users: employee_code (6 chữ số), description
+# Ghi chú:
+#   - departmentId khi tạo user là field API (map team_id), KHÔNG có cột trên users.
+#   - Gán phòng ban/team qua bảng team_members (workspace_member_id + team_id).
+# Chạy từng bước nếu DB đã tồn tại trước khi có các cột mới.
+# Bỏ qua bước nào đã được Hibernate ddl-auto=update áp dụng.
+# ===============================
+
+# -- Bước 1: thêm cột (nullable tạm thời cho employee_code)
+# ALTER TABLE users
+#     ADD COLUMN employee_code VARCHAR(6) NULL AFTER avatar_url,
+#     ADD COLUMN description TEXT NULL AFTER employee_code;
+
+# -- Bước 2: backfill mã nhân viên 6 chữ số cho bản ghi cũ (chỉ số, duy nhất theo id)
+# UPDATE users u
+#     JOIN (
+#         SELECT id, LPAD(id, 6, '0') AS generated_code
+#         FROM users
+#         WHERE employee_code IS NULL
+#     ) AS src ON u.id = src.id
+# SET u.employee_code = src.generated_code;
+
+# -- Bước 3: ràng buộc NOT NULL + UNIQUE
+# ALTER TABLE users
+#     MODIFY COLUMN employee_code VARCHAR(6) NOT NULL,
+#     ADD CONSTRAINT uk_users_employee_code UNIQUE (employee_code);
+
+# -- (Tùy chọn) Chỉ thêm description nếu chưa có employee_code migration
+# ALTER TABLE users
+#     ADD COLUMN description TEXT NULL AFTER avatar_url;
+
+# -- (Tùy chọn) Thêm role_id nếu bảng users cũ chưa có
+# ALTER TABLE users
+#     ADD COLUMN role_id BIGINT NULL AFTER status,
+#     ADD CONSTRAINT fk_users_role
+#         FOREIGN KEY (role_id) REFERENCES roles(id)
+#             ON UPDATE CASCADE ON DELETE SET NULL;
 
 CREATE TABLE roles (
                                      id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -40,6 +86,19 @@ CREATE TABLE role_permissions (
 
                                                 CONSTRAINT fk_role_permissions_permission
                                                     FOREIGN KEY (permission_id) REFERENCES permissions(id)
+                                                        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE refresh_tokens (
+                                                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                                user_id BIGINT NOT NULL,
+                                                token_hash VARCHAR(64) NOT NULL UNIQUE,
+                                                expires_at DATETIME NOT NULL,
+                                                revoked BOOLEAN NOT NULL DEFAULT FALSE,
+                                                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                                                CONSTRAINT fk_refresh_tokens_user
+                                                    FOREIGN KEY (user_id) REFERENCES users(id)
                                                         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
@@ -482,3 +541,15 @@ SELECT * FROM roles;
 UPDATE roles SET name = 'Project Contributor' WHERE id = 7;
 
 SELECT * FROM permissions;
+
+SELECT * FROM users;
+
+SELECT * FROM product_backlogs;
+
+SELECT * FROM teams;
+
+USE work_management_system;
+
+SELECT * FROM users;
+
+USE work_management_system;

@@ -176,6 +176,7 @@ public class CommentService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.TASK_NOT_FOUND, "Không tìm thấy task"));
     }
 
+    /** UC-6.4 — Lấy bình luận còn hiển thị (ACTIVE/EDITED) */
     private Comment getVisibleComment(Long taskId, Long commentId) {
         Comment comment = commentRepository.findByIdAndTaskId(commentId, taskId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.COMMENT_NOT_FOUND, "Không tìm thấy bình luận"));
@@ -185,6 +186,7 @@ public class CommentService {
         return comment;
     }
 
+    /** UC-6.2 — Lấy bình luận còn cho phép chỉnh sửa */
     private Comment getModifiableComment(Long taskId, Long commentId) {
         Comment comment = commentRepository.findByIdAndTaskId(commentId, taskId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.COMMENT_NOT_FOUND, "Không tìm thấy bình luận"));
@@ -201,6 +203,7 @@ public class CommentService {
         return getVisibleComment(taskId, parentCommentId);
     }
 
+    /** UC-6.1 — Xác định thành viên dự án làm tác giả bình luận */
     private ProjectMember resolveAuthorMembership(Project project) {
         return projectMemberRepository
                 .findByProjectIdAndTeamMember_WorkspaceMember_User_IdAndStatus(
@@ -214,6 +217,7 @@ public class CommentService {
                 ));
     }
 
+    /** UC-6.2 — Chỉ tác giả hoặc Project Manager được sửa/xóa bình luận */
     private void verifyCanModifyComment(Project project, Comment comment) {
         if (projectService.isActiveProjectManager(project)) {
             return;

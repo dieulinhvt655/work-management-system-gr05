@@ -1,6 +1,6 @@
 // ===============================
 // WORK MANAGEMENT SYSTEM - ERD
-// 20 TABLES
+// 21 TABLES
 // ===============================
 
 // ===============================
@@ -93,6 +93,8 @@ Table users {
   password_hash varchar(255) [not null]
   phone varchar(20)
   avatar_url varchar(500)
+  employee_code varchar(6) [not null, unique]
+  description text
   status user_status [not null, default: 'active']
   created_at datetime [not null]
   updated_at datetime
@@ -135,6 +137,19 @@ Table role_permissions {
   indexes {
     (role_id, permission_id) [pk]
   }
+}
+
+// ===============================
+// 4.5. REFRESH_TOKENS
+// ===============================
+
+Table refresh_tokens {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  token_hash varchar(64) [not null, unique]
+  expires_at datetime [not null]
+  revoked boolean [not null, default: false]
+  created_at datetime [not null]
 }
 
 
@@ -448,6 +463,7 @@ Table activity_logs {
 // Role - Permission
 Ref: role_permissions.role_id > roles.id
 Ref: role_permissions.permission_id > permissions.id
+Ref: refresh_tokens.user_id > users.id
 
 // User - Workspace
 Ref: workspaces.owner_user_id > users.id

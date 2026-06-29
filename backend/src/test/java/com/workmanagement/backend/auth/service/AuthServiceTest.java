@@ -1,13 +1,13 @@
 package com.workmanagement.backend.auth.service;
 
+import com.workmanagement.backend.activitylog.constant.ActivityLogAction;
+import com.workmanagement.backend.activitylog.service.ActivityLogService;
 import com.workmanagement.backend.auth.dto.request.ForgotPasswordRequest;
 import com.workmanagement.backend.auth.dto.request.LoginRequest;
 import com.workmanagement.backend.auth.dto.request.LogoutRequest;
 import com.workmanagement.backend.auth.dto.request.RefreshTokenRequest;
-import com.workmanagement.backend.auth.dto.request.RegisterRequest;
 import com.workmanagement.backend.auth.dto.request.ResetPasswordRequest;
 import com.workmanagement.backend.auth.dto.response.LoginResponse;
-import com.workmanagement.backend.auth.dto.response.RegisterResponse;
 import com.workmanagement.backend.auth.dto.response.TokenResponse;
 import com.workmanagement.backend.auth.entity.RefreshToken;
 import com.workmanagement.backend.auth.mapper.AuthMapper;
@@ -59,8 +59,9 @@ class AuthServiceTest {
     @Mock
     private RefreshTokenService refreshTokenService;
     @Mock
+    private ActivityLogService activityLogService;
+    @Mock
     private PasswordResetEmailService passwordResetEmailService;
-
     @InjectMocks
     private AuthService authService;
 
@@ -89,7 +90,7 @@ class AuthServiceTest {
     @Test
     void login_shouldReturnTokensWhenCredentialsValid() {
         LoginRequest request = new LoginRequest();
-        request.setEmail("admin@test.com");
+        request.setEmail("  ADMIN@Test.com  ");
         request.setPassword("secret");
 
         Permission permission = Permission.builder().id(1L).code("role:read").name("Read").module("role").build();
@@ -111,6 +112,14 @@ class AuthServiceTest {
 
         assertThat(result.getAccessToken()).isEqualTo("jwt-token");
         assertThat(result.getRefreshToken()).isEqualTo("refresh-token");
+        verify(userRepository).findByEmail("admin@test.com");
+        verify(activityLogService).recordOrgEvent(
+                eq(1L),
+                eq(ActivityLogAction.USER_LOGIN),
+                eq(ActivityLogAction.TARGET_USER),
+                eq(1L),
+                eq("SUCCESS")
+        );
     }
 
     @Test
@@ -138,6 +147,24 @@ class AuthServiceTest {
         assertThat(result.getAccessToken()).isEqualTo("new-access-token");
         assertThat(result.getRefreshToken()).isEqualTo("new-refresh-token");
         verify(refreshTokenService).rotate(storedRefreshToken);
+    }
+
+    @Test
+    void refresh_shouldRevokeSessionsAndThrowWhenUserInactive() {
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("old-refresh-token");
+
+        activeUser.setStatus(UserStatus.INACTIVE);
+        when(refreshTokenService.validate("old-refresh-token")).thenReturn(storedRefreshToken);
+        when(refreshTokenService.revokeAllForUser(1L)).thenReturn(1);
+
+        assertThatThrownBy(() -> authService.refresh(request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.USER_INACTIVE);
+
+        verify(refreshTokenService).revokeAllForUser(1L);
+        verify(refreshTokenService, never()).rotate(any());
     }
 
     @Test
@@ -192,43 +219,6 @@ class AuthServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.INVALID_CREDENTIALS);
-    }
-
-    @Test
-    void register_shouldCreateUser() {
-        RegisterRequest request = new RegisterRequest();
-        request.setFullName("New User");
-        request.setEmail("new@test.com");
-        request.setUsername("newuser");
-        request.setPassword("pass123");
-
-        User saved = User.builder().id(2L).fullName("New User").email("new@test.com").username("newuser").build();
-        RegisterResponse expected = RegisterResponse.builder().id(2L).email("new@test.com").build();
-
-        when(userRepository.existsByEmail("new@test.com")).thenReturn(false);
-        when(userRepository.existsByUsername("newuser")).thenReturn(false);
-        when(passwordEncoder.encode("pass123")).thenReturn("encoded");
-        when(userRepository.save(any(User.class))).thenReturn(saved);
-        when(authMapper.toRegisterResponse(saved)).thenReturn(expected);
-
-        RegisterResponse result = authService.register(request);
-
-        assertThat(result.getId()).isEqualTo(2L);
-        assertThat(result.getEmail()).isEqualTo("new@test.com");
-    }
-
-    @Test
-    void register_shouldThrowWhenEmailExists() {
-        RegisterRequest request = new RegisterRequest();
-        request.setEmail("exists@test.com");
-        request.setUsername("user");
-
-        when(userRepository.existsByEmail("exists@test.com")).thenReturn(true);
-
-        assertThatThrownBy(() -> authService.register(request))
-                .isInstanceOf(BusinessException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.EMAIL_ALREADY_EXISTS);
     }
 
     @Test

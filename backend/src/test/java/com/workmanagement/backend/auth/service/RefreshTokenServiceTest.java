@@ -79,6 +79,19 @@ class RefreshTokenServiceTest {
     }
 
     @Test
+    void validate_shouldReturnTokenEvenWhenUserInactive() {
+        String rawToken = "valid-refresh-token";
+        activeUser.setStatus(UserStatus.INACTIVE);
+        RefreshToken stored = storedToken(rawToken, LocalDateTime.now().plusDays(1));
+
+        when(refreshTokenRepository.findByTokenHashAndRevokedFalse(any())).thenReturn(Optional.of(stored));
+
+        RefreshToken result = refreshTokenService.validate(rawToken);
+
+        assertThat(result).isEqualTo(stored);
+    }
+
+    @Test
     void validate_shouldThrowWhenTokenMissing() {
         when(refreshTokenRepository.findByTokenHashAndRevokedFalse(any())).thenReturn(Optional.empty());
 
@@ -124,6 +137,16 @@ class RefreshTokenServiceTest {
         refreshTokenService.revoke("missing-token");
 
         verify(refreshTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void revokeAllForUser_shouldRevokeEveryActiveToken() {
+        when(refreshTokenRepository.revokeAllActiveByUserId(1L)).thenReturn(3);
+
+        int revoked = refreshTokenService.revokeAllForUser(1L);
+
+        assertThat(revoked).isEqualTo(3);
+        verify(refreshTokenRepository).revokeAllActiveByUserId(1L);
     }
 
     private RefreshToken storedToken(String rawToken, LocalDateTime expiresAt) {

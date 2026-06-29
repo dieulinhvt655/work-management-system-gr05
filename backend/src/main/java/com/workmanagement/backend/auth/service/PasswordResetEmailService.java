@@ -20,6 +20,7 @@ public class PasswordResetEmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    /** Hỗ trợ UC-1.3 — Gửi link đặt lại mật khẩu qua email */
     public void sendResetLink(String toEmail, String resetToken) {
         String resetLink = appProperties.getFrontendBaseUrl() + "/reset-password?token=" + resetToken;
 

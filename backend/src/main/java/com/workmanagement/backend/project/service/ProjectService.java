@@ -276,12 +276,14 @@ public class ProjectService {
         return projectMapper.toResponse(project);
     }
 
+    /** Hỗ trợ UC-3.x — Tra cứu dự án theo workspace/team */
     public Project getProject(Long workspaceId, Long teamId, Long projectId) {
         Team team = teamService.getTeam(workspaceId, teamId);
         return projectRepository.findByIdAndTeamId(projectId, team.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND, "Không tìm thấy dự án"));
     }
 
+    /** Hỗ trợ UC-3.2 — Kiểm tra quyền xem dự án */
     public void verifyProjectAccess(Project project) {
         teamService.verifyTeamAccess(project.getTeam());
     }
@@ -309,6 +311,7 @@ public class ProjectService {
         }
     }
 
+    /** Hỗ trợ UC-3.3 — Kiểm tra user hiện tại có phải Project Manager đang hoạt động */
     public boolean isActiveProjectManager(Project project) {
         TeamMember pm = project.getProjectManagerMember();
         return pm.getStatus() == MemberStatus.ACTIVE

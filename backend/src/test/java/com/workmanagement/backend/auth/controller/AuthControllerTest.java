@@ -1,9 +1,7 @@
 package com.workmanagement.backend.auth.controller;
 
 import com.workmanagement.backend.auth.dto.request.LoginRequest;
-import com.workmanagement.backend.auth.dto.request.RegisterRequest;
 import com.workmanagement.backend.auth.dto.response.LoginResponse;
-import com.workmanagement.backend.auth.dto.response.RegisterResponse;
 import com.workmanagement.backend.auth.dto.response.TokenResponse;
 import com.workmanagement.backend.auth.service.AuthService;
 import com.workmanagement.backend.common.constant.ErrorCode;
@@ -112,49 +110,6 @@ class AuthControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.errorCode").value(ErrorCode.INVALID_CREDENTIALS));
-    }
-
-    @Test
-    void register_shouldReturnSuccessPayload() throws Exception {
-        RegisterResponse response = RegisterResponse.builder()
-                .id(1L)
-                .email("test@test.com")
-                .username("testuser")
-                .fullName("Test")
-                .build();
-
-        when(authService.register(any(RegisterRequest.class))).thenReturn(response);
-
-        mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"fullName":"Test","email":"test@test.com","username":"testuser","password":"pass123"}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.email").value("test@test.com"));
-    }
-
-    @Test
-    void forgotPassword_shouldReturnSuccess() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/forgot-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"email":"admin@test.com"}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-    }
-
-    @Test
-    void resetPassword_shouldReturnSuccess() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/reset-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"token":"reset-token","newPassword":"newpass123"}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test

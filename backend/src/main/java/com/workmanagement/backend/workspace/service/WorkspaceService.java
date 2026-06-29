@@ -174,11 +174,13 @@ public class WorkspaceService {
         return workspaceMapper.toResponse(workspace);
     }
 
+    /** Hỗ trợ UC-2.x — Tra cứu workspace theo id */
     public Workspace getWorkspace(Long id) {
         return workspaceRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.WORKSPACE_NOT_FOUND, "Không tìm thấy workspace"));
     }
 
+    /** Hỗ trợ UC-2.2 — Kiểm tra quyền truy cập workspace */
     public void verifyAccess(Workspace workspace) {
         User currentUser = getCurrentUser();
         if (isSystemAdmin(currentUser)) {
@@ -195,6 +197,7 @@ public class WorkspaceService {
         throw new BusinessException(ErrorCode.WORKSPACE_ACCESS_DENIED, "Không có quyền truy cập workspace");
     }
 
+    /** Hỗ trợ UC-2.1/2.6 — Kiểm tra quyền quản lý workspace (owner/admin) */
     public void verifyCanManage(Workspace workspace) {
         User currentUser = getCurrentUser();
         if (isSystemAdmin(currentUser)) {

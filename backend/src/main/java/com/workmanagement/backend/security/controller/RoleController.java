@@ -28,26 +28,31 @@ public class RoleController {
 
     private final RoleService roleService;
 
+    /** UC-1.9 — Danh sách vai trò */
     @GetMapping
     public ApiResponse<List<RoleResponse>> findAll(@RequestParam(required = false) RoleScope scope) {
         return ApiResponse.success(roleService.findAll(scope));
     }
 
+    /** UC-1.9 — Chi tiết vai trò */
     @GetMapping("/{id}")
     public ApiResponse<RoleResponse> findById(@PathVariable Long id) {
         return ApiResponse.success(roleService.findById(id));
     }
 
+    /** UC-1.9 — Tạo vai trò */
     @PostMapping
     public ApiResponse<RoleResponse> create(@Valid @RequestBody CreateRoleRequest request) {
         return ApiResponse.success(roleService.create(request), "Tạo vai trò thành công");
     }
 
+    /** UC-1.9 — Cập nhật vai trò */
     @PutMapping("/{id}")
     public ApiResponse<RoleResponse> update(@PathVariable Long id, @RequestBody UpdateRoleRequest request) {
         return ApiResponse.success(roleService.update(id, request), "Cập nhật vai trò thành công");
     }
 
+    /** UC-1.9 — Gán quyền cho vai trò */
     @PutMapping("/{id}/permissions")
     public ApiResponse<RoleResponse> assignPermissions(
             @PathVariable Long id,
@@ -56,6 +61,7 @@ public class RoleController {
         return ApiResponse.success(roleService.assignPermissions(id, request), "Gán quyền thành công");
     }
 
+    /** UC-1.9 — Xóa vai trò */
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         roleService.delete(id);

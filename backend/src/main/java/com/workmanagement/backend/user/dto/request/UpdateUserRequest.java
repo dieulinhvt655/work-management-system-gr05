@@ -25,4 +25,7 @@ public class UpdateUserRequest {
     @Size(max = 500, message = "Avatar URL tối đa 500 ký tự")
     private String avatarUrl;
 
+    @Size(max = 500, message = "Mô tả tối đa 500 ký tự")
+    private String description;
+
 }

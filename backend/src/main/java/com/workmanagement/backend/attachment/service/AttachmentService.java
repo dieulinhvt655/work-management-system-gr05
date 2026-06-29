@@ -291,6 +291,7 @@ public class AttachmentService {
         return new DownloadableAttachment(resource, attachment.getFileName(), contentType);
     }
 
+    /** Hỗ trợ UC-6.4 — Nhóm tệp đính kèm theo danh sách bình luận */
     @Transactional(readOnly = true)
     public List<AttachmentResponse> findResponsesByCommentIds(List<Long> commentIds) {
         if (commentIds.isEmpty()) {

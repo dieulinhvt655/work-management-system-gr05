@@ -26,26 +26,31 @@ public class PermissionController {
 
     private final PermissionService permissionService;
 
+    /** UC-1.9 — Danh sách quyền */
     @GetMapping
     public ApiResponse<List<PermissionResponse>> findAll(@RequestParam(required = false) String module) {
         return ApiResponse.success(permissionService.findAll(module));
     }
 
+    /** UC-1.9 — Chi tiết quyền */
     @GetMapping("/{id}")
     public ApiResponse<PermissionResponse> findById(@PathVariable Long id) {
         return ApiResponse.success(permissionService.findById(id));
     }
 
+    /** UC-1.9 — Tạo quyền */
     @PostMapping
     public ApiResponse<PermissionResponse> create(@Valid @RequestBody CreatePermissionRequest request) {
         return ApiResponse.success(permissionService.create(request), "Tạo quyền thành công");
     }
 
+    /** UC-1.9 — Cập nhật quyền */
     @PutMapping("/{id}")
     public ApiResponse<PermissionResponse> update(@PathVariable Long id, @RequestBody UpdatePermissionRequest request) {
         return ApiResponse.success(permissionService.update(id, request), "Cập nhật quyền thành công");
     }
 
+    /** UC-1.9 — Xóa quyền */
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         permissionService.delete(id);

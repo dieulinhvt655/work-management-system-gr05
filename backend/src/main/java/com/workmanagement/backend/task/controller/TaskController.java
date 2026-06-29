@@ -42,6 +42,7 @@ public class TaskController {
         );
     }
 
+    /** UC-4.5 — Danh sách task chuẩn bị */
     @GetMapping
     public ApiResponse<List<TaskResponse>> findAll(
             @PathVariable Long workspaceId,
@@ -52,6 +53,7 @@ public class TaskController {
         return ApiResponse.success(taskService.findPreparationTasks(workspaceId, teamId, projectId, itemId));
     }
 
+    /** UC-4.5 — Chi tiết task chuẩn bị */
     @GetMapping("/{taskId}")
     public ApiResponse<TaskResponse> findById(
             @PathVariable Long workspaceId,

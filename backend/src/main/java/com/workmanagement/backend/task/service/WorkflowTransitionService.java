@@ -28,6 +28,7 @@ public class WorkflowTransitionService {
     private final WorkflowStateService workflowStateService;
     private final ProjectService projectService;
 
+    /** UC-5.0 — Danh sách transition workflow của dự án */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('project:read')")
     public List<WorkflowTransitionResponse> findAll(Long workspaceId, Long teamId, Long projectId) {
@@ -40,6 +41,7 @@ public class WorkflowTransitionService {
                 .toList();
     }
 
+    /** UC-5.0 — Tạo transition chuyển trạng thái workflow */
     @Transactional
     @PreAuthorize("hasAuthority('project:update')")
     public WorkflowTransitionResponse create(
@@ -70,6 +72,7 @@ public class WorkflowTransitionService {
         return workflowTransitionMapper.toResponse(workflowTransitionRepository.save(transition));
     }
 
+    /** UC-5.0 — Cập nhật transition workflow */
     @Transactional
     @PreAuthorize("hasAuthority('project:update')")
     public WorkflowTransitionResponse update(
@@ -97,6 +100,7 @@ public class WorkflowTransitionService {
         return workflowTransitionMapper.toResponse(workflowTransitionRepository.save(transition));
     }
 
+    /** UC-5.0 — Xóa transition workflow */
     @Transactional
     @PreAuthorize("hasAuthority('project:update')")
     public void delete(Long workspaceId, Long teamId, Long projectId, Long transitionId) {
@@ -107,6 +111,7 @@ public class WorkflowTransitionService {
         workflowTransitionRepository.delete(transition);
     }
 
+    /** Hỗ trợ UC-5.5/5.7 — Kiểm tra transition hợp lệ khi chuyển trạng thái task */
     void validateTransition(Long projectId, Long fromStateId, Long toStateId) {
         workflowTransitionRepository.findByProjectIdAndFromStateIdAndToStateId(projectId, fromStateId, toStateId)
                 .orElseThrow(() -> new BusinessException(

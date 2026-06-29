@@ -4,13 +4,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.workmanagement.backend.auth.dto.request.LoginRequest;
-import com.workmanagement.backend.auth.dto.request.RegisterRequest;
 import com.workmanagement.backend.common.enums.RoleScope;
+import com.workmanagement.backend.common.enums.UserStatus;
 import com.workmanagement.backend.productbacklog.dto.request.CreateProductBacklogItemRequest;
 import com.workmanagement.backend.project.dto.request.CreateProjectRequest;
 import com.workmanagement.backend.task.dto.request.CreateTaskRequest;
 import com.workmanagement.backend.team.dto.request.AddTeamMemberRequest;
 import com.workmanagement.backend.team.dto.request.CreateTeamRequest;
+import com.workmanagement.backend.user.entity.User;
+import com.workmanagement.backend.user.repository.UserRepository;
+import com.workmanagement.backend.user.util.EmployeeCodeGenerator;
 import com.workmanagement.backend.workspace.dto.request.CreateWorkspaceRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,6 +45,15 @@ public abstract class AbstractIntegrationTest {
 
     @Autowired
     protected MockMvc mockMvc;
+
+    @Autowired
+    protected UserRepository userRepository;
+
+    @Autowired
+    protected org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Autowired
+    protected EmployeeCodeGenerator employeeCodeGenerator;
 
     protected final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
@@ -85,19 +97,20 @@ public abstract class AbstractIntegrationTest {
     }
 
     protected LoginTokens registerAndLogin(String suffix) throws Exception {
-        RegisterRequest request = new RegisterRequest();
-        request.setFullName("Integration User " + suffix);
-        request.setEmail("integration-" + suffix + "@test.local");
-        request.setUsername("integration_" + suffix);
-        request.setPassword("password123");
+        String email = "integration-" + suffix + "@test.local";
+        String username = "integration_" + suffix;
+        String password = "password123";
 
-        mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+        userRepository.save(User.builder()
+                .fullName("Integration User " + suffix)
+                .email(email)
+                .username(username)
+                .employeeCode(employeeCodeGenerator.generateUnique())
+                .passwordHash(passwordEncoder.encode(password))
+                .status(UserStatus.ACTIVE)
+                .build());
 
-        return login(request.getEmail(), request.getPassword());
+        return login(email, password);
     }
 
     protected Long findRoleId(String accessToken, String roleName, RoleScope scope) throws Exception {

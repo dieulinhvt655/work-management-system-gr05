@@ -52,6 +52,12 @@ public class User {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
+    @Column(name = "employee_code", nullable = false, unique = true, length = 6)
+    private String employeeCode;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(nullable = false)
     private UserStatus status;
 

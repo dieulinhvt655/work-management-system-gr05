@@ -25,6 +25,7 @@ public class WorkflowStateController {
 
     private final WorkflowStateService workflowStateService;
 
+    /** UC-5.0 — Danh sách trạng thái workflow */
     @GetMapping
     public ApiResponse<List<WorkflowStateResponse>> findAll(
             @PathVariable Long workspaceId,
@@ -34,6 +35,7 @@ public class WorkflowStateController {
         return ApiResponse.success(workflowStateService.findAll(workspaceId, teamId, projectId));
     }
 
+    /** UC-5.0 — Tạo trạng thái workflow */
     @PostMapping
     public ApiResponse<WorkflowStateResponse> create(
             @PathVariable Long workspaceId,
@@ -47,6 +49,7 @@ public class WorkflowStateController {
         );
     }
 
+    /** UC-5.0 — Cập nhật trạng thái workflow */
     @PutMapping("/{stateId}")
     public ApiResponse<WorkflowStateResponse> update(
             @PathVariable Long workspaceId,
@@ -61,6 +64,7 @@ public class WorkflowStateController {
         );
     }
 
+    /** UC-5.0 — Xóa trạng thái workflow */
     @DeleteMapping("/{stateId}")
     public ApiResponse<Void> delete(
             @PathVariable Long workspaceId,

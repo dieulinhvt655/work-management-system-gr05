@@ -24,6 +24,7 @@ public class FileStorageService {
 
     private final AttachmentProperties attachmentProperties;
 
+    /** Hỗ trợ UC-3.8 — Lưu tệp tài liệu dự án lên đĩa */
     public StoredFile storeProjectFile(Long projectId, MultipartFile file) {
         validateFile(file);
 
@@ -49,6 +50,7 @@ public class FileStorageService {
         return new StoredFile(relativePath, originalName, file.getContentType(), file.getSize());
     }
 
+    /** Hỗ trợ UC-6.3 — Lưu tệp đính kèm bình luận lên đĩa */
     public StoredFile storeCommentFile(Long projectId, Long taskId, Long commentId, MultipartFile file) {
         validateFile(file);
 
@@ -90,6 +92,7 @@ public class FileStorageService {
         return new StoredFile(relativePath, originalName, file.getContentType(), file.getSize());
     }
 
+    /** Hỗ trợ UC-3.9, UC-6.3 — Đọc tệp để tải xuống */
     public Resource loadAsResource(String relativePath) {
         try {
             Path filePath = Paths.get(attachmentProperties.getUploadDir()).resolve(relativePath).normalize();
@@ -103,6 +106,7 @@ public class FileStorageService {
         }
     }
 
+    /** Hỗ trợ UC-3.8, UC-6.3 — Xóa tệp vật lý khỏi đĩa */
     public void delete(String relativePath) {
         try {
             Path filePath = Paths.get(attachmentProperties.getUploadDir()).resolve(relativePath).normalize();

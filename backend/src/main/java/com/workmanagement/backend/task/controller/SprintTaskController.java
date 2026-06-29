@@ -29,6 +29,7 @@ public class SprintTaskController {
 
     private final TaskService taskService;
 
+    /** UC-5.3 — Danh sách task trong sprint */
     @GetMapping
     public ApiResponse<List<TaskResponse>> findAll(
             @PathVariable Long workspaceId,
@@ -39,6 +40,7 @@ public class SprintTaskController {
         return ApiResponse.success(taskService.findSprintTasks(workspaceId, teamId, projectId, sprintId));
     }
 
+    /** UC-5.3 — Chi tiết task trong sprint */
     @GetMapping("/{taskId}")
     public ApiResponse<TaskResponse> findById(
             @PathVariable Long workspaceId,

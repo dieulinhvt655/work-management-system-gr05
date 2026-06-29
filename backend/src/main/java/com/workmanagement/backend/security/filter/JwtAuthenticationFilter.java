@@ -1,6 +1,9 @@
 package com.workmanagement.backend.security.filter;
 
 import com.workmanagement.backend.security.jwt.JwtTokenProvider;
+import com.workmanagement.backend.common.enums.UserStatus;
+import com.workmanagement.backend.user.repository.UserRepository;
+import com.workmanagement.backend.security.repository.RolePermissionRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +23,8 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
+    private final RolePermissionRepository rolePermissionRepository;
 
     @Override
     protected void doFilterInternal(
@@ -31,7 +36,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null && jwtTokenProvider.isValidToken(token) && jwtTokenProvider.isAccessToken(token)) {
             Long userId = jwtTokenProvider.getUserIdFromToken(token);
-            List<String> permissions = jwtTokenProvider.getPermissionsFromToken(token);
+            boolean activeUser = userRepository.existsByIdAndStatus(userId, UserStatus.ACTIVE);
+            if (!activeUser) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+            List<String> permissions = rolePermissionRepository.findPermissionCodesByUserId(userId);
             List<SimpleGrantedAuthority> authorities = permissions.stream()
                     .map(SimpleGrantedAuthority::new)
                     .toList();

@@ -31,6 +31,7 @@ public class RoleService {
     private final RoleMapper roleMapper;
     private final UserRepository userRepository;
 
+    /** UC-1.9 — Danh sách vai trò */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('role:read')")
     public List<RoleResponse> findAll(RoleScope scope) {
@@ -40,12 +41,14 @@ public class RoleService {
         return roles.stream().map(this::toResponseWithPermissions).toList();
     }
 
+    /** UC-1.9 — Chi tiết vai trò kèm danh sách quyền */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('role:read')")
     public RoleResponse findById(Long id) {
         return toResponseWithPermissions(getRole(id));
     }
 
+    /** UC-1.9 — Tạo vai trò mới */
     @Transactional
     @PreAuthorize("hasAuthority('role:create')")
     public RoleResponse create(CreateRoleRequest request) {
@@ -67,6 +70,7 @@ public class RoleService {
         return toResponseWithPermissions(role);
     }
 
+    /** UC-1.9 — Cập nhật thông tin vai trò */
     @Transactional
     @PreAuthorize("hasAuthority('role:update')")
     public RoleResponse update(Long id, UpdateRoleRequest request) {
@@ -96,6 +100,7 @@ public class RoleService {
         return toResponseWithPermissions(role);
     }
 
+    /** UC-1.9 — Xóa vai trò chưa được gán cho người dùng */
     @Transactional
     @PreAuthorize("hasAuthority('role:delete')")
     public void delete(Long id) {

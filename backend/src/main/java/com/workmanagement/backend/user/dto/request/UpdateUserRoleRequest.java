@@ -12,4 +12,7 @@ public class UpdateUserRoleRequest {
     @NotNull(message = "Vai trò không được để trống")
     private Long roleId;
 
+    /** Bắt buộc khi gán role có WORKSPACE scope. */
+    private Long workspaceId;
+
 }

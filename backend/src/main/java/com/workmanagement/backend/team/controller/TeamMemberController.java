@@ -24,7 +24,7 @@ public class TeamMemberController {
 
     private final TeamMemberService teamMemberService;
 
-    /** Danh sách thành viên nhóm */
+    /** UC-2.4 — Danh sách thành viên nhóm */
     @GetMapping
     public ApiResponse<List<TeamMemberResponse>> findAll(
             @PathVariable Long workspaceId,
@@ -33,7 +33,7 @@ public class TeamMemberController {
         return ApiResponse.success(teamMemberService.findAll(workspaceId, teamId));
     }
 
-    /** Thêm thành viên vào nhóm */
+    /** UC-2.4 — Thêm thành viên vào nhóm */
     @PostMapping
     public ApiResponse<TeamMemberResponse> add(
             @PathVariable Long workspaceId,
@@ -46,7 +46,7 @@ public class TeamMemberController {
         );
     }
 
-    /** Cập nhật thành viên nhóm */
+    /** UC-2.4 — Cập nhật thành viên nhóm */
     @PatchMapping("/{memberId}")
     public ApiResponse<TeamMemberResponse> update(
             @PathVariable Long workspaceId,

@@ -29,6 +29,7 @@ public class WorkflowStateService {
     private final WorkflowStateMapper workflowStateMapper;
     private final ProjectService projectService;
 
+    /** UC-5.0 — Danh sách trạng thái workflow của dự án */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('project:read')")
     public List<WorkflowStateResponse> findAll(Long workspaceId, Long teamId, Long projectId) {
@@ -41,6 +42,7 @@ public class WorkflowStateService {
                 .toList();
     }
 
+    /** UC-5.0 — Tạo trạng thái workflow mới */
     @Transactional
     @PreAuthorize("hasAuthority('project:update')")
     public WorkflowStateResponse create(
@@ -72,6 +74,7 @@ public class WorkflowStateService {
         return workflowStateMapper.toResponse(workflowStateRepository.save(state));
     }
 
+    /** UC-5.0 — Cập nhật trạng thái workflow */
     @Transactional
     @PreAuthorize("hasAuthority('project:update')")
     public WorkflowStateResponse update(
@@ -111,6 +114,7 @@ public class WorkflowStateService {
         return workflowStateMapper.toResponse(workflowStateRepository.save(state));
     }
 
+    /** UC-5.0 — Xóa trạng thái workflow không còn được dùng */
     @Transactional
     @PreAuthorize("hasAuthority('project:update')")
     public void delete(Long workspaceId, Long teamId, Long projectId, Long stateId) {
@@ -128,6 +132,7 @@ public class WorkflowStateService {
         workflowStateRepository.delete(state);
     }
 
+    /** Hỗ trợ UC-5.3 — Khởi tạo workflow mặc định khi dự án chưa có */
     @Transactional
     public WorkflowState ensureDefaultWorkflow(Project project) {
         if (!workflowStateRepository.existsByProjectId(project.getId())) {

@@ -3,13 +3,13 @@ package com.workmanagement.backend.auth.service;
 import com.workmanagement.backend.auth.entity.RefreshToken;
 import com.workmanagement.backend.auth.repository.RefreshTokenRepository;
 import com.workmanagement.backend.common.constant.ErrorCode;
-import com.workmanagement.backend.common.enums.UserStatus;
 import com.workmanagement.backend.common.exception.BusinessException;
 import com.workmanagement.backend.security.jwt.JwtProperties;
 import com.workmanagement.backend.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -25,6 +25,7 @@ public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProperties jwtProperties;
 
+    /** Hỗ trợ UC-1.1 — Tạo refresh token khi đăng nhập */
     @Transactional
     public String createRefreshToken(User user) {
         String rawToken = UUID.randomUUID().toString();
@@ -38,7 +39,8 @@ public class RefreshTokenService {
         return rawToken;
     }
 
-    @Transactional(readOnly = true)
+    /** Hỗ trợ UC-1.1 — Xác thực refresh token còn hiệu lực */
+    @Transactional
     public RefreshToken validate(String rawToken) {
         RefreshToken token = refreshTokenRepository.findByTokenHashAndRevokedFalse(hash(rawToken))
                 .orElseThrow(() -> new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID, "Refresh token không hợp lệ"));
@@ -49,13 +51,10 @@ public class RefreshTokenService {
             throw new BusinessException(ErrorCode.TOKEN_EXPIRED, "Refresh token đã hết hạn");
         }
 
-        if (token.getUser().getStatus() != UserStatus.ACTIVE) {
-            throw new BusinessException(ErrorCode.USER_INACTIVE, "Tài khoản đã bị vô hiệu hóa");
-        }
-
         return token;
     }
 
+    /** Hỗ trợ UC-1.1 — Xoay refresh token sau khi làm mới phiên */
     @Transactional
     public String rotate(RefreshToken currentToken) {
         currentToken.setRevoked(true);
@@ -63,6 +62,7 @@ public class RefreshTokenService {
         return createRefreshToken(currentToken.getUser());
     }
 
+    /** UC-1.2 — Thu hồi refresh token khi đăng xuất */
     @Transactional
     public void revoke(String rawToken) {
         refreshTokenRepository.findByTokenHashAndRevokedFalse(hash(rawToken))
@@ -70,6 +70,12 @@ public class RefreshTokenService {
                     token.setRevoked(true);
                     refreshTokenRepository.save(token);
                 });
+    }
+
+    /** Thu hồi mọi phiên đăng nhập còn hiệu lực của một user. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int revokeAllForUser(Long userId) {
+        return refreshTokenRepository.revokeAllActiveByUserId(userId);
     }
 
     private static String hash(String rawToken) {

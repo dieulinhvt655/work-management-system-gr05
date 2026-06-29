@@ -48,6 +48,14 @@ public final class ActivityLogAction {
     public static final String SPRINT_PBI_ADDED = "SPRINT_PBI_ADDED";
     public static final String SPRINT_PBI_REMOVED = "SPRINT_PBI_REMOVED";
 
+    public static final String USER_PROFILE_UPDATED = "USER_PROFILE_UPDATED";
+    public static final String USER_CREATED = "USER_CREATED";
+    public static final String USER_LOGIN = "USER_LOGIN";
+    public static final String USER_LOCKED = "USER_LOCKED";
+    public static final String USER_UNLOCKED = "USER_UNLOCKED";
+    public static final String USER_ROLE_UPDATED = "USER_ROLE_UPDATED";
+    public static final String USER_UPDATED = "USER_UPDATED";
+
     public static final String TARGET_WORKSPACE = "WORKSPACE";
     public static final String TARGET_WORKSPACE_MEMBER = "WORKSPACE_MEMBER";
     public static final String TARGET_TEAM = "TEAM";
@@ -58,5 +66,6 @@ public final class ActivityLogAction {
     public static final String TARGET_PBI = "PBI";
     public static final String TARGET_TASK = "TASK";
     public static final String TARGET_SPRINT = "SPRINT";
+    public static final String TARGET_USER = "USER";
 
 }

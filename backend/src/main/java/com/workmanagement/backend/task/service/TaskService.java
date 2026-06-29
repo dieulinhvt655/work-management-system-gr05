@@ -64,6 +64,7 @@ public class TaskService {
 
     // --- UC 4.5-4.8: Preparation tasks ---
 
+    /** UC-4.5 — Danh sách task chuẩn bị của PBI */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('task:read')")
     public List<TaskResponse> findPreparationTasks(
@@ -83,6 +84,7 @@ public class TaskService {
                 .toList();
     }
 
+    /** UC-4.5 — Chi tiết task chuẩn bị */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('task:read')")
     public TaskResponse findPreparationTaskById(
@@ -229,6 +231,7 @@ public class TaskService {
 
     // --- UC 5.3-5.7: Sprint tasks ---
 
+    /** UC-5.3 — Danh sách task trong sprint */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('task:read')")
     public List<TaskResponse> findSprintTasks(
@@ -247,6 +250,7 @@ public class TaskService {
                 .toList();
     }
 
+    /** UC-5.3 — Chi tiết task trong sprint */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('task:read')")
     public TaskResponse findSprintTaskById(

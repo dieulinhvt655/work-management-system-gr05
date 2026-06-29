@@ -18,4 +18,10 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
     @Query("SELECT rp.permission FROM RolePermission rp WHERE rp.role.id = :roleId")
     List<Permission> findPermissionsByRoleId(@Param("roleId") Long roleId);
 
+    @Query("""
+            select rp.permission.code from RolePermission rp
+            where rp.role.id = (select u.role.id from User u where u.id = :userId)
+            """)
+    List<String> findPermissionCodesByUserId(@Param("userId") Long userId);
+
 }

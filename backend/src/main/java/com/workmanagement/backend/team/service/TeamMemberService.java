@@ -46,7 +46,7 @@ public class TeamMemberService {
     private final RoleRepository roleRepository;
     private final ActivityLogService activityLogService;
 
-    /** Danh sách thành viên nhóm */
+    /** UC-2.4 — Danh sách thành viên nhóm */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('team:read')")
     public List<TeamMemberResponse> findAll(Long workspaceId, Long teamId) {
@@ -59,7 +59,7 @@ public class TeamMemberService {
                 .toList();
     }
 
-    /** Thêm thành viên vào nhóm */
+    /** UC-2.4 — Thêm thành viên workspace vào nhóm */
     @Transactional
     @PreAuthorize("hasAuthority('team:update')")
     public TeamMemberResponse add(Long workspaceId, Long teamId, AddTeamMemberRequest request) {
@@ -110,7 +110,7 @@ public class TeamMemberService {
         return teamMemberMapper.toResponse(member);
     }
 
-    /** Cập nhật vai trò / trạng thái thành viên nhóm */
+    /** UC-2.4 — Cập nhật vai trò / trạng thái thành viên nhóm */
     @Transactional
     @PreAuthorize("hasAuthority('team:update')")
     public TeamMemberResponse update(

@@ -13,6 +13,8 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     Optional<Role> findByNameAndScope(String name, RoleScope scope);
 
+    Optional<Role> findFirstByName(String name);
+
     boolean existsByNameAndScope(String name, RoleScope scope);
 
 }

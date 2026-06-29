@@ -24,6 +24,7 @@ public class PermissionService {
     private final PermissionRepository permissionRepository;
     private final PermissionMapper permissionMapper;
 
+    /** UC-1.9 — Danh sách quyền hệ thống */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('permission:read')")
     public List<PermissionResponse> findAll(String module) {
@@ -33,12 +34,14 @@ public class PermissionService {
         return permissions.stream().map(permissionMapper::toResponse).toList();
     }
 
+    /** UC-1.9 — Chi tiết quyền */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('permission:read')")
     public PermissionResponse findById(Long id) {
         return permissionMapper.toResponse(getPermission(id));
     }
 
+    /** UC-1.9 — Tạo quyền mới */
     @Transactional
     @PreAuthorize("hasAuthority('permission:create')")
     public PermissionResponse create(CreatePermissionRequest request) {
@@ -56,6 +59,7 @@ public class PermissionService {
         return permissionMapper.toResponse(permissionRepository.save(permission));
     }
 
+    /** UC-1.9 — Cập nhật thông tin quyền */
     @Transactional
     @PreAuthorize("hasAuthority('permission:update')")
     public PermissionResponse update(Long id, UpdatePermissionRequest request) {
@@ -74,6 +78,7 @@ public class PermissionService {
         return permissionMapper.toResponse(permissionRepository.save(permission));
     }
 
+    /** UC-1.9 — Xóa quyền */
     @Transactional
     @PreAuthorize("hasAuthority('permission:delete')")
     public void delete(Long id) {

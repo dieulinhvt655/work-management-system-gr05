@@ -25,6 +25,7 @@ public class WorkflowTransitionController {
 
     private final WorkflowTransitionService workflowTransitionService;
 
+    /** UC-5.0 — Danh sách transition workflow */
     @GetMapping
     public ApiResponse<List<WorkflowTransitionResponse>> findAll(
             @PathVariable Long workspaceId,
@@ -34,6 +35,7 @@ public class WorkflowTransitionController {
         return ApiResponse.success(workflowTransitionService.findAll(workspaceId, teamId, projectId));
     }
 
+    /** UC-5.0 — Tạo transition workflow */
     @PostMapping
     public ApiResponse<WorkflowTransitionResponse> create(
             @PathVariable Long workspaceId,
@@ -47,6 +49,7 @@ public class WorkflowTransitionController {
         );
     }
 
+    /** UC-5.0 — Cập nhật transition workflow */
     @PutMapping("/{transitionId}")
     public ApiResponse<WorkflowTransitionResponse> update(
             @PathVariable Long workspaceId,
@@ -61,6 +64,7 @@ public class WorkflowTransitionController {
         );
     }
 
+    /** UC-5.0 — Xóa transition workflow */
     @DeleteMapping("/{transitionId}")
     public ApiResponse<Void> delete(
             @PathVariable Long workspaceId,

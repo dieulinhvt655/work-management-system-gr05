@@ -12,7 +12,7 @@ Module xác thực phiên đăng nhập. Thuộc nhóm **UC 1.0 – Quản lý n
 
 ## Phạm vi module
 
-- Đăng ký / đăng nhập, cấp và làm mới JWT (access + refresh token).
+- Đăng nhập, cấp và làm mới JWT (access + refresh token).
 - Đăng xuất (vô hiệu hóa refresh token nếu có).
 - Quy trình quên mật khẩu và đặt lại mật khẩu.
 
@@ -25,5 +25,5 @@ Module xác thực phiên đăng nhập. Thuộc nhóm **UC 1.0 – Quản lý n
 ## Controllers & DTOs chính
 
 - `AuthController`
-- Request: `LoginRequest`, `RegisterRequest`, `RefreshTokenRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest`
-- Response: `LoginResponse`, `RegisterResponse`, `TokenResponse`
+- Request: `LoginRequest`, `RefreshTokenRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest`
+- Response: `LoginResponse`, `TokenResponse`

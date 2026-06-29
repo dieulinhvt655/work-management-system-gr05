@@ -24,7 +24,7 @@ public class ProductBacklogService {
     private final ProductBacklogMapper productBacklogMapper;
     private final ProjectService projectService;
 
-    /** Lấy hoặc tạo backlog mặc định cho dự án */
+    /** Hỗ trợ UC-4.1 — Lấy hoặc tạo backlog mặc định cho dự án */
     @Transactional
     public ProductBacklog getOrCreateBacklog(Project project) {
         return productBacklogRepository.findByProjectId(project.getId())
@@ -35,7 +35,7 @@ public class ProductBacklogService {
                         .build()));
     }
 
-    /** Xem thông tin backlog của dự án */
+    /** UC-4.4 — Xem thông tin product backlog của dự án */
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('backlog:read')")
     public ProductBacklogResponse findByProject(Long workspaceId, Long teamId, Long projectId) {
@@ -51,7 +51,7 @@ public class ProductBacklogService {
         return productBacklogMapper.toResponse(backlog);
     }
 
-    /** Cập nhật thông tin backlog */
+    /** UC-4.2 — Cập nhật thông tin product backlog */
     @Transactional
     @PreAuthorize("hasAuthority('backlog:update')")
     public ProductBacklogResponse update(
@@ -77,6 +77,7 @@ public class ProductBacklogService {
         return productBacklogMapper.toResponse(backlog);
     }
 
+    /** Hỗ trợ UC-4.x — Tra cứu backlog theo dự án */
     ProductBacklog getBacklogForProject(Long projectId) {
         return productBacklogRepository.findByProjectId(projectId)
                 .orElseThrow(() -> new BusinessException(
@@ -85,12 +86,14 @@ public class ProductBacklogService {
                 ));
     }
 
+    /** Hỗ trợ UC-4.x — Chặn thao tác khi dự án đã kết thúc hoặc lưu trữ */
     void ensureProjectAcceptsBacklogChanges(Project project) {
         if (project.getStatus() == ProjectStatus.ARCHIVED || project.getStatus() == ProjectStatus.COMPLETED) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Dự án đã kết thúc hoặc lưu trữ");
         }
     }
 
+    /** Hỗ trợ UC-4.x — Chỉ Project Manager được cập nhật backlog */
     void verifyIsProjectManager(Project project) {
         if (!projectService.isActiveProjectManager(project)) {
             throw new BusinessException(
