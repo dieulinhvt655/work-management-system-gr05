@@ -263,6 +263,12 @@
   color: var(--color-danger);
 }
 
+.auth-info-box__success {
+  margin-bottom: 0.625rem;
+  font-size: 0.8125rem;
+  color: #047857;
+}
+
 @media (max-width: 480px) {
   .auth-card {
     padding: 2rem 1.5rem;

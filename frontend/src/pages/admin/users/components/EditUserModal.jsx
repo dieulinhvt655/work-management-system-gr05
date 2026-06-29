@@ -23,7 +23,7 @@ export default function EditUserModal({
     defaultValues: {
       fullName: user.fullName,
       email: user.email,
-      employeeCode: user.employeeCode,
+      username: user.username ?? '',
       departmentId: user.departmentId ?? '',
       phone: user.phone ?? '',
     },
@@ -63,10 +63,10 @@ export default function EditUserModal({
         />
 
         <TextField
-          id="edit-employeeCode"
-          label="Mã nhân viên"
-          error={errors.employeeCode?.message}
-          {...register('employeeCode')}
+          id="edit-username"
+          label="Username"
+          error={errors.username?.message}
+          {...register('username')}
         />
 
         <SelectField

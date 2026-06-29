@@ -2,74 +2,63 @@ import {
   Briefcase,
   ClipboardList,
   FolderKanban,
-  LayoutDashboard,
-  ScrollText,
-  Settings,
-  Shield,
-  User,
-  UserCog,
   Users,
 } from 'lucide-react'
 import { PERMISSIONS } from '../permissions'
+import {
+  ADMIN_DEFAULT_ROUTE_PRIORITY,
+  ADMIN_NAV_ITEMS,
+  ADMIN_ROUTE_PERMISSIONS,
+} from './adminNavItems'
+import {
+  WORKSPACE_OWNER_DEFAULT_ROUTE_PRIORITY,
+  WORKSPACE_OWNER_NAV_ITEMS,
+  WORKSPACE_OWNER_ROUTE_PERMISSIONS,
+} from './workspaceOwnerNavItems'
+import { isWorkspaceOwnerUser } from '../../utils/userRoleUtils'
 
-/** Navigation config — visibility driven by permission, not role. */
-export const NAV_ITEMS = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    children: [
-      {
-        id: 'dashboard-workspace',
-        label: 'Workspace Dashboard',
-        to: '/dashboard/workspace',
-        permission: PERMISSIONS.DASHBOARD_WORKSPACE_READ,
-      },
-      {
-        id: 'dashboard-team',
-        label: 'Team Dashboard',
-        to: '/dashboard/team',
-        permission: PERMISSIONS.DASHBOARD_TEAM_READ,
-      },
-      {
-        id: 'dashboard-project',
-        label: 'Project Dashboard',
-        to: '/dashboard/project',
-        permission: PERMISSIONS.DASHBOARD_PROJECT_READ,
-      },
-      {
-        id: 'dashboard-my',
-        label: 'My Dashboard',
-        to: '/dashboard/my',
-        permission: PERMISSIONS.DASHBOARD_MY_READ,
-      },
-    ],
-  },
-  {
-    id: 'workspaces',
-    label: 'Workspaces',
-    icon: Briefcase,
-    children: [
-      {
-        id: 'workspaces-list',
-        label: 'Danh sách Workspace',
-        to: '/admin/workspaces',
-        permission: PERMISSIONS.WORKSPACE_ADMIN_READ,
-      },
-      {
-        id: 'workspaces-create',
-        label: 'Tạo Workspace',
-        to: '/admin/workspaces/create',
-        permission: PERMISSIONS.WORKSPACE_ADMIN_CREATE,
-      },
-      {
-        id: 'workspaces-activity',
-        label: 'Workspace Activity',
-        to: '/admin/workspaces/activity',
-        permission: PERMISSIONS.WORKSPACE_ADMIN_ACTIVITY_READ,
-      },
-    ],
-  },
+/** Pick sidebar items by session role scope. */
+export function getNavItemsForUser(user) {
+  if (user?.isSystemAdmin) {
+    return ADMIN_NAV_ITEMS
+  }
+
+  if (isWorkspaceOwnerUser(user)) {
+    return WORKSPACE_OWNER_NAV_ITEMS
+  }
+
+  return OPERATIONAL_NAV_ITEMS
+}
+
+export function getRoutePermissionsForUser(user) {
+  if (user?.isSystemAdmin) {
+    return ROUTE_PERMISSIONS_BASE
+  }
+
+  if (isWorkspaceOwnerUser(user)) {
+    return {
+      ...WORKSPACE_OWNER_ROUTE_PERMISSIONS,
+      '/profile': PERMISSIONS.PROFILE_READ,
+    }
+  }
+
+  return ROUTE_PERMISSIONS_BASE
+}
+
+export function getDefaultRoutePriorityForUser(user) {
+  if (user?.isSystemAdmin) {
+    return DEFAULT_ROUTE_PRIORITY_BASE
+  }
+
+  if (isWorkspaceOwnerUser(user)) {
+    return WORKSPACE_OWNER_DEFAULT_ROUTE_PRIORITY
+  }
+
+  return DEFAULT_ROUTE_PRIORITY_BASE.filter((path) => !path.startsWith('/admin'))
+}
+
+/** Operational navigation (non-admin modules). */
+const OPERATIONAL_NAV_ITEMS = [
   {
     id: 'workspace',
     label: 'Workspace',
@@ -87,102 +76,32 @@ export const NAV_ITEMS = [
         to: '/workspace/settings',
         permission: PERMISSIONS.WORKSPACE_MANAGE,
       },
-      {
-        id: 'workspace-activity',
-        label: 'Workspace Activity',
-        to: '/workspace/activity',
-        permission: PERMISSIONS.WORKSPACE_ACTIVITY_READ,
-      },
     ],
   },
   {
-    id: 'users',
-    label: 'User Management',
-    icon: UserCog,
-    children: [
-      {
-        id: 'users-list',
-        label: 'Danh sách người dùng',
-        to: '/admin/users',
-        permission: PERMISSIONS.USER_READ,
-      },
-      {
-        id: 'users-create',
-        label: 'Tạo tài khoản',
-        to: '/admin/users/create',
-        permission: PERMISSIONS.USER_MANAGE,
-      },
-      {
-        id: 'users-status',
-        label: 'Trạng thái tài khoản',
-        to: '/admin/users/status',
-        permission: PERMISSIONS.USER_MANAGE,
-      },
-    ],
-  },
-  {
-    id: 'teams',
-    label: 'Teams & Departments',
-    icon: Users,
-    children: [
-      {
-        id: 'teams-list',
-        label: 'Danh sách Team',
-        to: '/teams',
-        permission: PERMISSIONS.TEAM_READ,
-      },
-      {
-        id: 'teams-departments',
-        label: 'Danh sách Department',
-        to: '/teams/departments',
-        permission: PERMISSIONS.TEAM_READ,
-      },
-      {
-        id: 'teams-assign',
-        label: 'Phân công thành viên',
-        to: '/teams/assignments',
-        permission: PERMISSIONS.TEAM_MANAGE,
-      },
-    ],
-  },
-  {
-    id: 'members',
-    label: 'Workspace Members',
-    icon: Users,
-    children: [
-      {
-        id: 'members-list',
-        label: 'Danh sách thành viên',
-        to: '/members',
-        permission: PERMISSIONS.MEMBER_READ,
-      },
-      {
-        id: 'members-invite',
-        label: 'Mời thành viên',
-        to: '/members/invite',
-        permission: PERMISSIONS.MEMBER_MANAGE,
-      },
-      {
-        id: 'members-permissions',
-        label: 'Phân quyền thành viên',
-        to: '/members/permissions',
-        permission: PERMISSIONS.MEMBER_MANAGE,
-      },
-    ],
-  },
-  {
-    id: 'roles',
-    label: 'Roles & Permissions',
-    icon: Shield,
-    to: '/roles',
-    permission: PERMISSIONS.ROLE_MANAGE,
-  },
-  {
-    id: 'projects',
-    label: 'Projects',
+    id: 'project-management',
+    label: 'Project Management',
     icon: FolderKanban,
-    to: '/projects',
-    permission: PERMISSIONS.PROJECT_READ,
+    children: [
+      {
+        id: 'projects-create',
+        label: 'Create Project',
+        to: '/projects/create',
+        permission: PERMISSIONS.PROJECT_CREATE,
+      },
+      {
+        id: 'projects-list',
+        label: 'Projects',
+        to: '/projects',
+        permission: PERMISSIONS.PROJECT_READ,
+      },
+      {
+        id: 'projects-activity',
+        label: 'Project Activity',
+        to: '/projects/activity',
+        permission: PERMISSIONS.PROJECTS_ACTIVITY_READ,
+      },
+    ],
   },
   {
     id: 'my-work',
@@ -196,12 +115,6 @@ export const NAV_ITEMS = [
         permission: PERMISSIONS.MYWORK_READ,
       },
       {
-        id: 'my-work-assigned',
-        label: 'Assigned Tasks',
-        to: '/my-work/assigned',
-        permission: PERMISSIONS.MYWORK_READ,
-      },
-      {
         id: 'my-work-activity',
         label: 'My Activity',
         to: '/my-work/activity',
@@ -210,80 +123,61 @@ export const NAV_ITEMS = [
     ],
   },
   {
-    id: 'audit',
-    label: 'Audit Logs',
-    icon: ScrollText,
+    id: 'my-team',
+    label: 'My Team',
+    icon: Users,
     children: [
       {
-        id: 'audit-system',
-        label: 'System Logs',
-        to: '/admin/audit/system',
-        permission: PERMISSIONS.AUDIT_READ,
-      },
-      {
-        id: 'audit-security',
-        label: 'Security Logs',
-        to: '/admin/audit/security',
-        permission: PERMISSIONS.AUDIT_READ,
+        id: 'my-team-members-list',
+        label: 'Team Members',
+        to: '/my-team/members',
+        permission: PERMISSIONS.MY_TEAM_MEMBERS_READ,
       },
     ],
   },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings,
-    to: '/admin/settings',
-    permission: PERMISSIONS.SETTINGS_MANAGE,
-  },
-  {
-    id: 'profile',
-    label: 'Hồ sơ cá nhân',
-    icon: User,
-    to: '/profile',
-    permission: PERMISSIONS.PROFILE_READ,
-  },
 ]
+
+/** Full sidebar — admin module first, then operational items (legacy export). */
+export const NAV_ITEMS = [...ADMIN_NAV_ITEMS, ...OPERATIONAL_NAV_ITEMS]
 
 /** Route → permission map for PermissionRoute guards. */
 export const ROUTE_PERMISSIONS = {
+  ...ADMIN_ROUTE_PERMISSIONS,
+  ...WORKSPACE_OWNER_ROUTE_PERMISSIONS,
   '/dashboard/workspace': PERMISSIONS.DASHBOARD_WORKSPACE_READ,
-  '/dashboard/team': PERMISSIONS.DASHBOARD_TEAM_READ,
-  '/dashboard/project': PERMISSIONS.DASHBOARD_PROJECT_READ,
   '/dashboard/my': PERMISSIONS.DASHBOARD_MY_READ,
-  '/admin/workspaces': PERMISSIONS.WORKSPACE_ADMIN_READ,
-  '/admin/workspaces/create': PERMISSIONS.WORKSPACE_ADMIN_CREATE,
-  '/admin/workspaces/activity': PERMISSIONS.WORKSPACE_ADMIN_ACTIVITY_READ,
   '/workspace/info': PERMISSIONS.WORKSPACE_READ,
+  '/workspace/roles': PERMISSIONS.ROLE_MANAGE,
   '/workspace/settings': PERMISSIONS.WORKSPACE_MANAGE,
   '/workspace/activity': PERMISSIONS.WORKSPACE_ACTIVITY_READ,
-  '/admin/users': PERMISSIONS.USER_READ,
-  '/admin/users/create': PERMISSIONS.USER_MANAGE,
-  '/admin/users/status': PERMISSIONS.USER_MANAGE,
   '/teams': PERMISSIONS.TEAM_READ,
+  '/teams/create': PERMISSIONS.TEAM_MANAGE,
+  '/teams/assign-members': PERMISSIONS.TEAM_MANAGE,
   '/teams/departments': PERMISSIONS.TEAM_READ,
   '/teams/assignments': PERMISSIONS.TEAM_MANAGE,
+  '/my-team': PERMISSIONS.MY_TEAM_READ,
+  '/my-team/members': PERMISSIONS.MY_TEAM_MEMBERS_READ,
   '/members': PERMISSIONS.MEMBER_READ,
   '/members/invite': PERMISSIONS.MEMBER_MANAGE,
   '/members/permissions': PERMISSIONS.MEMBER_MANAGE,
-  '/roles': PERMISSIONS.ROLE_MANAGE,
   '/projects': PERMISSIONS.PROJECT_READ,
+  '/projects/create': PERMISSIONS.PROJECT_CREATE,
+  '/projects/activity': PERMISSIONS.PROJECTS_ACTIVITY_READ,
   '/my-work/tasks': PERMISSIONS.MYWORK_READ,
-  '/my-work/assigned': PERMISSIONS.MYWORK_READ,
   '/my-work/activity': PERMISSIONS.MYWORK_READ,
-  '/admin/audit/system': PERMISSIONS.AUDIT_READ,
-  '/admin/audit/security': PERMISSIONS.AUDIT_READ,
-  '/admin/settings': PERMISSIONS.SETTINGS_MANAGE,
+  '/my-work/assigned': PERMISSIONS.MYWORK_READ,
   '/profile': PERMISSIONS.PROFILE_READ,
 }
 
+const ROUTE_PERMISSIONS_BASE = ROUTE_PERMISSIONS
+
 export const DEFAULT_ROUTE_PRIORITY = [
-  '/dashboard/my',
-  '/dashboard/project',
-  '/dashboard/team',
+  ...ADMIN_DEFAULT_ROUTE_PRIORITY,
   '/dashboard/workspace',
+  '/dashboard/my',
   '/projects',
   '/my-work/tasks',
   '/workspace/info',
-  '/admin/workspaces',
-  '/profile',
 ]
+
+const DEFAULT_ROUTE_PRIORITY_BASE = DEFAULT_ROUTE_PRIORITY

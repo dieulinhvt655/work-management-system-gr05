@@ -13,6 +13,7 @@ export default function UserGeneralTab() {
       <div className="user-detail-tab__card">
         <dl className="user-detail__list user-detail__list--grid">
           <UserDetailRow label="Email">{user.email}</UserDetailRow>
+          <UserDetailRow label="Username">{user.username || '—'}</UserDetailRow>
           <UserDetailRow label="Mã nhân viên">
             <code className="user-table__code">{user.employeeCode}</code>
           </UserDetailRow>

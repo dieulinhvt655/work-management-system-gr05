@@ -1,15 +1,32 @@
+import { useQuery } from '@tanstack/react-query'
 import { useOutletContext } from 'react-router-dom'
-import { getPermissionLabel } from '../../../../constants/permissionLabels'
-import { ROLE_PERMISSIONS } from '../../../../constants/mock/rolePermissions'
+import { fetchRoleById } from '../../../../api/rolesApi'
+import LoadingScreen from '../../../../components/common/LoadingScreen'
+import { useAuth } from '../../../../context/AuthContext'
 import { MOCK_ROLE_LABELS } from '../../../../constants/roles'
 import { USER_ROLE_LABELS } from '../../../../constants/users'
 import UserStatusBadge from '../components/UserStatusBadge'
 
 export default function UserRolesTab() {
   const { user } = useOutletContext()
-  const permissions = ROLE_PERMISSIONS[user.role] ?? []
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const roleLabel =
-    USER_ROLE_LABELS[user.role] ?? MOCK_ROLE_LABELS[user.role] ?? user.role
+    user.roleName ??
+    USER_ROLE_LABELS[user.role] ??
+    MOCK_ROLE_LABELS[user.role] ??
+    user.role
+
+  const { data: role, isLoading } = useQuery({
+    queryKey: ['admin', 'roles', user.roleId],
+    queryFn: () => fetchRoleById(user.roleId),
+    enabled: isAuthenticated && !authLoading && Boolean(user.roleId),
+  })
+
+  const permissions = role?.permissions ?? []
+
+  if (isLoading) {
+    return <LoadingScreen />
+  }
 
   return (
     <section className="user-detail-tab">
@@ -18,6 +35,9 @@ export default function UserRolesTab() {
           <div>
             <p className="user-role-summary__label">Vai trò hiện tại</p>
             <p className="user-role-summary__value">{roleLabel}</p>
+            {role?.scope && (
+              <p className="user-role-summary__meta">Phạm vi: {role.scope}</p>
+            )}
           </div>
           <UserStatusBadge status={user.status} />
         </div>
@@ -34,9 +54,12 @@ export default function UserRolesTab() {
           ) : (
             <ul className="user-permissions__list">
               {permissions.map((permission) => (
-                <li key={permission} className="user-permissions__item">
+                <li key={permission.id} className="user-permissions__item">
                   <span className="user-permissions__dot" aria-hidden="true" />
-                  {getPermissionLabel(permission)}
+                  <span>
+                    {permission.name}
+                    <span className="user-permissions__code">{permission.code}</span>
+                  </span>
                 </li>
               ))}
             </ul>

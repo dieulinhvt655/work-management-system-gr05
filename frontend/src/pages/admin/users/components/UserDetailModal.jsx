@@ -33,6 +33,7 @@ export default function UserDetailModal({ user, onClose }) {
 
         <dl className="user-detail__list">
           <DetailRow label="Workspace">{user.workspaceName ?? '—'}</DetailRow>
+          <DetailRow label="Username">{user.username || '—'}</DetailRow>
           <DetailRow label="Mã nhân viên">
             <code className="user-table__code">{user.employeeCode}</code>
           </DetailRow>

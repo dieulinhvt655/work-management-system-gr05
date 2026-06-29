@@ -42,7 +42,7 @@ export default function LoginPage() {
         password: values.password,
         mockRole: showMockLogin ? values.mockRole : undefined,
       })
-      navigate(getDefaultRoute(user?.permissions), { replace: true })
+      navigate(getDefaultRoute(user?.permissions, user), { replace: true })
     } catch (error) {
       setSubmitError(getErrorMessage(error, 'Email hoặc mật khẩu không đúng.'))
     }

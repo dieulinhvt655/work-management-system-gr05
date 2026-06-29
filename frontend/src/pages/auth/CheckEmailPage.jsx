@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { Mail } from 'lucide-react'
-import { requestPasswordReset } from '../../api/authApi'
+import { requestPasswordReset } from '../../api/authService'
 import AuthBackLink from '../../components/common/AuthBackLink'
 import AuthBrand from '../../components/common/AuthBrand'
 import { getErrorMessage } from '../../utils/getErrorMessage'
@@ -10,8 +10,10 @@ import '../../assets/styles/auth.css'
 export default function CheckEmailPage() {
   const location = useLocation()
   const email = location.state?.email
+  const successMessage = location.state?.message
   const [isResending, setIsResending] = useState(false)
   const [resendError, setResendError] = useState('')
+  const [resendMessage, setResendMessage] = useState('')
 
   if (!email) {
     return <Navigate to="/forgot-password" replace />
@@ -19,10 +21,12 @@ export default function CheckEmailPage() {
 
   const handleResend = async () => {
     setResendError('')
+    setResendMessage('')
     setIsResending(true)
 
     try {
-      await requestPasswordReset(email)
+      const result = await requestPasswordReset(email)
+      setResendMessage(result.message)
     } catch (error) {
       setResendError(getErrorMessage(error, 'Không thể gửi lại email. Vui lòng thử lại.'))
     } finally {
@@ -41,11 +45,16 @@ export default function CheckEmailPage() {
       <h1 className="auth-card__title">Kiểm tra email của bạn</h1>
 
       <p className="auth-card__subtitle auth-card__subtitle--compact">
-        Chúng tôi đã gửi link đặt lại mật khẩu đến
+        {successMessage ?? 'Chúng tôi đã gửi link đặt lại mật khẩu đến'}
       </p>
       <p className="auth-card__email">{email}</p>
 
       <div className="auth-info-box">
+        {resendMessage && (
+          <p className="auth-info-box__success" role="status">
+            {resendMessage}
+          </p>
+        )}
         <p>
           Không nhận được email? Kiểm tra thư mục spam hoặc{' '}
           <button

@@ -6,7 +6,10 @@ export const editUserSchema = z.object({
     .string()
     .min(1, 'Vui lòng nhập email')
     .email('Email không hợp lệ'),
-  employeeCode: z.string().min(1, 'Vui lòng nhập mã nhân viên'),
+  username: z
+    .string()
+    .min(3, 'Username phải có ít nhất 3 ký tự')
+    .max(100, 'Username tối đa 100 ký tự'),
   departmentId: z.string().optional(),
   phone: z.string().optional(),
 })

@@ -1,11 +1,16 @@
 import { Link, Outlet } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { PROJECT_STATUS_LABELS } from '../../constants/mock/projects'
+import { PROJECT_STATUS_LABELS } from '../../constants/projects'
+import LoadingScreen from '../common/LoadingScreen'
 import { useProject } from '../../hooks/useProject'
 import ProjectTabs from './ProjectTabs'
 
 export default function ProjectLayout() {
-  const { project, notFound } = useProject()
+  const { project, notFound, isLoading } = useProject()
+
+  if (isLoading) {
+    return <LoadingScreen />
+  }
 
   if (notFound) {
     return (

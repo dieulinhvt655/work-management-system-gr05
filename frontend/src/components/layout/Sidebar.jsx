@@ -1,18 +1,26 @@
 import { useMemo } from 'react'
-import { NavLink } from 'react-router-dom'
-import { NAV_ITEMS } from '../../constants/navigation/navItems'
+import { Link, useLocation } from 'react-router-dom'
+import { getNavItemsForUser } from '../../constants/navigation/navItems'
+import { useAuth } from '../../context/AuthContext'
 import { usePermission } from '../../hooks/usePermission'
 import { useResizableSidebar } from '../../hooks/useResizableSidebar'
-import { filterNavItems } from '../../utils/navUtils'
+import { filterNavItems, collectNavRoutes, isNavItemActive } from '../../utils/navUtils'
 import SidebarGroup from './SidebarGroup'
 
 export default function Sidebar() {
+  const { user } = useAuth()
   const { can } = usePermission()
+  const location = useLocation()
   const { width, isResizing, startResize, resetWidth } = useResizableSidebar()
 
   const visibleItems = useMemo(
-    () => filterNavItems(NAV_ITEMS, can),
-    [can],
+    () => filterNavItems(getNavItemsForUser(user), can),
+    [user, can],
+  )
+
+  const allRoutes = useMemo(
+    () => collectNavRoutes(visibleItems),
+    [visibleItems],
   )
 
   return (
@@ -22,7 +30,9 @@ export default function Sidebar() {
     >
       <div className="sidebar__brand">
         <span className="sidebar__brand-icon">W</span>
-        <span className="sidebar__brand-text">Work Management</span>
+        <span className="sidebar__brand-text" title="Work Management">
+          Work Management
+        </span>
       </div>
 
       <nav className="sidebar__nav">
@@ -32,17 +42,22 @@ export default function Sidebar() {
           }
 
           const Icon = item.icon
+          const siblingRoutes = allRoutes
+            .filter((to) => to !== item.to)
+            .map((to) => ({ to }))
+          const active = isNavItemActive(location.pathname, item.to, siblingRoutes)
+
           return (
-            <NavLink
+            <Link
               key={item.id}
               to={item.to}
-              className={({ isActive }) =>
-                `sidebar__link${isActive ? ' sidebar__link--active' : ''}`
-              }
+              title={item.label}
+              className={`sidebar__link${active ? ' sidebar__link--active' : ''}`}
+              aria-current={active ? 'page' : undefined}
             >
               {Icon && <Icon size={18} aria-hidden="true" />}
               <span className="sidebar__link-label">{item.label}</span>
-            </NavLink>
+            </Link>
           )
         })}
       </nav>

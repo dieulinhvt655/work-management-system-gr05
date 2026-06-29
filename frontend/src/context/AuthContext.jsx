@@ -1,23 +1,25 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import api, { clearAuthStorage, setAuthTokens } from '../api/axios'
-import { isMockSession, mockLogin } from '../api/mockAuth'
+import { clearAuthStorage, setAuthTokens } from '../api/axios'
+import { clearRolesCache } from '../api/rolesApi'
+import { login as loginRequest, fetchCurrentUser, logoutApi } from '../api/authService'
+import { isMockSession } from '../api/mockAuth'
 import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from '../constants/auth'
 import { MOCK_ACCESS_TOKEN, USE_MOCK_AUTH } from '../constants/config'
 import { createMockUser } from '../constants/mock/rolePermissions'
-import { MOCK_ROLES } from '../constants/roles'
 
 const AuthContext = createContext(null)
-
-function unwrapResponse(response) {
-  return response.data?.data ?? response.data
-}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem(AUTH_USER_KEY)
     return stored ? JSON.parse(stored) : null
   })
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(() => {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token || isMockSession(token)) return false
+    // Có token + user cache → không chặn UI chờ refresh session.
+    return !localStorage.getItem(AUTH_USER_KEY)
+  })
 
   const persistUser = useCallback((nextUser) => {
     setUser(nextUser)
@@ -28,11 +30,20 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const fetchCurrentUser = useCallback(async () => {
-    const { data } = await api.get('/auth/me')
-    const currentUser = unwrapResponse({ data })
-    persistUser(currentUser)
-    return currentUser
+  const restoreSession = useCallback(async () => {
+    try {
+      const currentUser = await fetchCurrentUser()
+      if (currentUser) {
+        persistUser(currentUser)
+      }
+      return currentUser
+    } catch {
+      const stored = localStorage.getItem(AUTH_USER_KEY)
+      if (stored) {
+        return JSON.parse(stored)
+      }
+      throw new Error('Session expired')
+    }
   }, [persistUser])
 
   useEffect(() => {
@@ -48,7 +59,13 @@ export function AuthProvider({ children }) {
       return
     }
 
-    fetchCurrentUser()
+    const storedUser = localStorage.getItem(AUTH_USER_KEY)
+    if (storedUser) {
+      // Hiển thị UI ngay với session cache; refresh profile ở background.
+      setIsLoading(false)
+    }
+
+    restoreSession()
       .catch(() => {
         clearAuthStorage()
         persistUser(null)
@@ -56,28 +73,14 @@ export function AuthProvider({ children }) {
       .finally(() => {
         setIsLoading(false)
       })
-  }, [fetchCurrentUser, persistUser])
+  }, [persistUser, restoreSession])
 
   const login = useCallback(
     async ({ email, password, mockRole }) => {
-      if (USE_MOCK_AUTH) {
-        const mockUser = mockLogin({
-          mockRole: mockRole ?? MOCK_ROLES.TEAM_MEMBER,
-          email: email || undefined,
-        })
-        setAuthTokens({
-          accessToken: MOCK_ACCESS_TOKEN,
-          refreshToken: 'mock-refresh-token',
-        })
-        persistUser(mockUser)
-        return mockUser
-      }
-
-      const { data } = await api.post('/auth/login', { email, password })
-      const payload = unwrapResponse({ data })
+      const payload = await loginRequest({ email, password, mockRole })
 
       setAuthTokens({
-        accessToken: payload.accessToken ?? payload.token,
+        accessToken: payload.accessToken,
         refreshToken: payload.refreshToken,
       })
 
@@ -86,9 +89,9 @@ export function AuthProvider({ children }) {
         return payload.user
       }
 
-      return fetchCurrentUser()
+      return restoreSession()
     },
-    [fetchCurrentUser, persistUser],
+    [persistUser, restoreSession],
   )
 
   const switchMockRole = useCallback(
@@ -111,13 +114,14 @@ export function AuthProvider({ children }) {
 
     if (!isMockSession(token)) {
       try {
-        await api.post('/auth/logout')
+        await logoutApi()
       } catch {
         // Ignore logout errors and clear local session anyway.
       }
     }
 
     clearAuthStorage()
+    clearRolesCache()
     persistUser(null)
   }, [persistUser])
 

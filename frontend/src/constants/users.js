@@ -17,13 +17,17 @@ export const CREATE_USER_STATUS_OPTIONS = [
   { value: USER_ACCOUNT_STATUS.INACTIVE, label: 'Inactive' },
 ]
 
+/** Default role when creating a new account. */
+export const DEFAULT_CREATE_USER_ROLE = 'WORKSPACE_MEMBER'
+
 /** Display labels for system role keys returned by API. */
 export const USER_ROLE_LABELS = {
   SYSTEM_ADMIN: 'System Admin',
   WORKSPACE_OWNER: 'Workspace Owner',
+  WORKSPACE_MEMBER: 'Workspace Member',
   TEAM_LEADER: 'Team Leader',
   PROJECT_MANAGER: 'Project Manager',
-  TEAM_MEMBER: 'Team Member',
+  TEAM_MEMBER: 'Project Contributor',
 }
 
 export const USER_ROLE_OPTIONS = Object.entries(USER_ROLE_LABELS).map(

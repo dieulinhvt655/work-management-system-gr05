@@ -316,7 +316,7 @@ select.user-filters__control {
 }
 
 .user-table__col-status {
-  width: 10%;
+  width: 8.5rem;
 }
 
 .user-table__col-activity {
@@ -426,7 +426,8 @@ select.user-filters__control {
   border-radius: 999px;
   font-size: 0.6875rem;
   font-weight: 600;
-  max-width: 100%;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .user-status__dot {
@@ -843,6 +844,23 @@ select.user-filters__control {
   max-width: 42rem;
 }
 
+.create-user-page__helper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.create-user-page__helper svg {
+  flex-shrink: 0;
+  color: #64748b;
+}
+
 .create-user-page__card {
   max-width: 760px;
   padding: 1.5rem;
@@ -850,6 +868,20 @@ select.user-filters__control {
   background: var(--users-card-bg);
   border: 1px solid var(--users-card-border);
   box-shadow: var(--users-card-shadow);
+}
+
+.create-user-page__retry-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #2563eb;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.create-user-page__retry-link:hover {
+  color: #1d4ed8;
 }
 
 .user-form-section + .user-form-section {
@@ -976,6 +1008,20 @@ select.user-filters__control {
   flex-wrap: wrap;
   gap: 0.625rem;
   margin-top: 0.75rem;
+}
+
+.user-detail-page__employee-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.user-detail-page__employee-code-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .user-detail-page__actions {
@@ -1108,6 +1154,20 @@ select.user-filters__control {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
+}
+
+.user-permissions__code {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  font-family: ui-monospace, monospace;
+}
+
+.user-role-summary__meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
 }
 
 .user-permissions__dot {

@@ -23,6 +23,8 @@ export const PERMISSIONS = {
   // Team
   TEAM_READ: 'team:read',
   TEAM_MANAGE: 'team:manage',
+  MY_TEAM_READ: 'team:my:read',
+  MY_TEAM_MEMBERS_READ: 'team:members:read',
 
   // Member
   MEMBER_READ: 'member:read',
@@ -44,6 +46,7 @@ export const PERMISSIONS = {
   PROJECT_MEMBER_MANAGE: 'project:member:manage',
   PROJECT_DOC_READ: 'project:doc:read',
   PROJECT_ACTIVITY_READ: 'project:activity:read',
+  PROJECTS_ACTIVITY_READ: 'projects:activity:read',
 
   // RBAC & audit
   ROLE_MANAGE: 'role:manage',

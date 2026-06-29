@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react'
-import { USER_ROLE_OPTIONS, USER_STATUS_LABELS } from '../../../../constants/users'
+import { USER_STATUS_LABELS } from '../../../../constants/users'
 
 const ALL = ''
 
@@ -8,7 +8,7 @@ export default function UserFilters({
   onChange,
   resultCount,
   departments = [],
-  workspaces = [],
+  roles = [],
 }) {
   const set = (key, value) => {
     onChange({ ...filters, [key]: value })
@@ -17,31 +17,6 @@ export default function UserFilters({
   return (
     <div className="user-filters">
       <div className="user-filters__primary">
-        <div className="user-filters__field user-filters__field--workspace">
-          <label className="user-filters__label" htmlFor="filter-workspace">
-            Workspace
-          </label>
-          <select
-            id="filter-workspace"
-            className="user-filters__control"
-            value={filters.workspaceId}
-            onChange={(event) => set('workspaceId', event.target.value)}
-            disabled={workspaces.length === 0}
-          >
-            {workspaces.length === 0 ? (
-              <option value="">Chưa có workspace</option>
-            ) : (
-              workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.code
-                    ? `${workspace.name} (${workspace.code})`
-                    : workspace.name}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-
         <div className="user-filters__search">
           <label className="user-filters__label" htmlFor="filter-search">
             Tìm kiếm
@@ -56,16 +31,13 @@ export default function UserFilters({
               value={filters.search}
               onChange={(event) => set('search', event.target.value)}
               aria-label="Tìm kiếm người dùng"
-              disabled={!filters.workspaceId}
             />
           </div>
         </div>
 
-        {filters.workspaceId && (
-          <span className="user-filters__count-badge">
-            {resultCount} người dùng
-          </span>
-        )}
+        <span className="user-filters__count-badge">
+          {resultCount} tài khoản
+        </span>
       </div>
 
       <div className="user-filters__secondary">
@@ -78,12 +50,11 @@ export default function UserFilters({
             className="user-filters__control"
             value={filters.role}
             onChange={(event) => set('role', event.target.value)}
-            disabled={!filters.workspaceId}
           >
             <option value={ALL}>Tất cả</option>
-            {USER_ROLE_OPTIONS.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
+            {roles.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.name}
               </option>
             ))}
           </select>
@@ -98,7 +69,7 @@ export default function UserFilters({
             className="user-filters__control"
             value={filters.departmentId}
             onChange={(event) => set('departmentId', event.target.value)}
-            disabled={!filters.workspaceId || departments.length === 0}
+            disabled={departments.length === 0}
           >
             <option value={ALL}>
               {departments.length === 0 ? 'Chưa có' : 'Tất cả'}
@@ -120,7 +91,6 @@ export default function UserFilters({
             className="user-filters__control"
             value={filters.status}
             onChange={(event) => set('status', event.target.value)}
-            disabled={!filters.workspaceId}
           >
             <option value={ALL}>Tất cả</option>
             {Object.entries(USER_STATUS_LABELS).map(([value, label]) => (
