@@ -4,42 +4,43 @@ import { Plus } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   fetchDepartments,
-  fetchUsersGroupedByWorkspace,
+  fetchUsers,
   updateUser,
   updateUserRole,
   updateUserStatus,
 } from '../../../api/usersApi'
+import { fetchRoles } from '../../../api/rolesApi'
 import LoadingScreen from '../../../components/common/LoadingScreen'
 import PermissionGate from '../../../components/common/PermissionGate'
 import Toast from '../../../components/common/Toast'
 import { PERMISSIONS } from '../../../constants/permissions'
+import { useAuth } from '../../../context/AuthContext'
 import { USER_ACCOUNT_STATUS } from '../../../constants/users'
+import { mapFrontendStatusToBackend } from '../../../utils/userMappers'
 import { getErrorMessage } from '../../../utils/getErrorMessage'
 import PermissionRoute from '../../../routes/PermissionRoute'
 import ChangeRoleModal from './components/ChangeRoleModal'
 import EditUserModal from './components/EditUserModal'
 import UserFilters, { FILTER_ALL } from './components/UserFilters'
-import WorkspaceUsersSection from './components/WorkspaceUsersSection'
-import {
-  getFilteredWorkspaceGroup,
-  hasActiveUserFilters,
-} from './utils/filterUsers'
+import UserTable from './components/UserTable'
+import { filterUsers, hasActiveUserFilters } from './utils/filterUsers'
 
 const INITIAL_FILTERS = {
-  workspaceId: '',
   search: '',
   role: FILTER_ALL,
   departmentId: FILTER_ALL,
   status: FILTER_ALL,
 }
 
-const USERS_QUERY_KEY = ['admin', 'users', 'grouped-by-workspace']
+const USERS_QUERY_KEY = ['admin', 'users']
 const DEPARTMENTS_QUERY_KEY = ['admin', 'departments']
+const ROLES_QUERY_KEY = ['admin', 'roles']
 
 export default function UsersListPage() {
   const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [filters, setFilters] = useState(INITIAL_FILTERS)
   const [editUser, setEditUser] = useState(null)
   const [roleUser, setRoleUser] = useState(null)
@@ -53,9 +54,25 @@ export default function UsersListPage() {
     navigate(location.pathname, { replace: true, state: null })
   }, [location.pathname, location.state, navigate])
 
-  const { data: workspaceGroups = [], isLoading } = useQuery({
-    queryKey: USERS_QUERY_KEY,
-    queryFn: fetchUsersGroupedByWorkspace,
+  const apiFilters = useMemo(
+    () => ({
+      keyword: filters.search.trim() || undefined,
+      status: filters.status
+        ? mapFrontendStatusToBackend(filters.status)
+        : undefined,
+    }),
+    [filters.search, filters.status],
+  )
+
+  const {
+    data: users = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: [...USERS_QUERY_KEY, apiFilters],
+    queryFn: () => fetchUsers(apiFilters),
+    enabled: isAuthenticated && !authLoading,
   })
 
   const { data: departments = [] } = useQuery({
@@ -63,37 +80,22 @@ export default function UsersListPage() {
     queryFn: fetchDepartments,
   })
 
-  const workspaceOptions = useMemo(
-    () =>
-      workspaceGroups.map((group) => ({
-        id: group.workspaceId,
-        name: group.workspaceName,
-        code: group.workspaceCode,
-      })),
-    [workspaceGroups],
-  )
+  const { data: roles = [] } = useQuery({
+    queryKey: ROLES_QUERY_KEY,
+    queryFn: fetchRoles,
+    enabled: isAuthenticated && !authLoading,
+  })
 
-  useEffect(() => {
-    if (workspaceGroups.length === 0) return
-
-    const exists = workspaceGroups.some(
-      (group) => group.workspaceId === filters.workspaceId,
-    )
-
-    if (!filters.workspaceId || !exists) {
-      setFilters((current) => ({
-        ...current,
-        workspaceId: workspaceGroups[0].workspaceId,
-      }))
+  const filteredUsers = useMemo(() => {
+    const roleAndDeptFilters = {
+      ...filters,
+      search: '',
+      status: FILTER_ALL,
     }
-  }, [workspaceGroups, filters.workspaceId])
+    return filterUsers(users, roleAndDeptFilters)
+  }, [users, filters])
 
-  const selectedGroup = useMemo(
-    () => getFilteredWorkspaceGroup(workspaceGroups, filters),
-    [workspaceGroups, filters],
-  )
-
-  const resultCount = selectedGroup?.users.length ?? 0
+  const resultCount = filteredUsers.length
   const userFiltersActive = hasActiveUserFilters(filters)
 
   const invalidateUsers = () => {
@@ -170,8 +172,23 @@ export default function UsersListPage() {
     navigate(`/admin/users/${user.id}`)
   }
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return <LoadingScreen />
+  }
+
+  if (isError) {
+    return (
+      <PermissionRoute permission={PERMISSIONS.USER_READ}>
+        <div className="page page--wide users-page">
+          <div className="user-table-empty users-page__list">
+            <p className="user-table-empty__title">Không thể tải danh sách</p>
+            <p className="user-table-empty__text">
+              {getErrorMessage(error, 'Vui lòng thử lại sau.')}
+            </p>
+          </div>
+        </div>
+      </PermissionRoute>
+    )
   }
 
   return (
@@ -188,7 +205,7 @@ export default function UsersListPage() {
               className="btn btn--primary page-header-btn users-page__cta"
             >
               <Plus size={16} aria-hidden="true" />
-              Tạo tài khoản
+              Tạo Account
             </Link>
           </header>
         </PermissionGate>
@@ -198,31 +215,31 @@ export default function UsersListPage() {
           onChange={setFilters}
           resultCount={resultCount}
           departments={departments}
-          workspaces={workspaceOptions}
+          roles={roles}
         />
 
-        {workspaceGroups.length === 0 ? (
-          <div className="user-table-empty users-page__list">
-            <p className="user-table-empty__title">Chưa có workspace</p>
-            <p className="user-table-empty__text">
-              Dữ liệu người dùng sẽ hiển thị khi có workspace.
-            </p>
-          </div>
-        ) : selectedGroup ? (
-          <div className="users-page__list">
-            <WorkspaceUsersSection
-            workspaceId={selectedGroup.workspaceId}
-            workspaceName={selectedGroup.workspaceName}
-            workspaceCode={selectedGroup.workspaceCode}
-            users={selectedGroup.users}
-            hasActiveFilters={userFiltersActive}
-            onView={openDetail}
-            onEdit={setEditUser}
-            onChangeRole={setRoleUser}
-            onToggleLock={handleToggleLock}
+        <div className="users-page__list">
+          {filteredUsers.length === 0 ? (
+            <div className="user-table-empty user-table-empty--inline">
+              <p className="user-table-empty__title">
+                {userFiltersActive ? 'Không tìm thấy kết quả' : 'Chưa có tài khoản'}
+              </p>
+              <p className="user-table-empty__text">
+                {userFiltersActive
+                  ? 'Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.'
+                  : 'Tài khoản đã tạo sẽ hiển thị tại đây.'}
+              </p>
+            </div>
+          ) : (
+            <UserTable
+              users={filteredUsers}
+              onView={openDetail}
+              onEdit={setEditUser}
+              onChangeRole={setRoleUser}
+              onToggleLock={handleToggleLock}
             />
-          </div>
-        ) : null}
+          )}
+        </div>
 
         {editUser && (
           <EditUserModal
@@ -241,6 +258,7 @@ export default function UsersListPage() {
         {roleUser && (
           <ChangeRoleModal
             user={roleUser}
+            roles={roles}
             onClose={() => {
               setRoleUser(null)
               setActionError('')

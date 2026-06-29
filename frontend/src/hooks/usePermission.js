@@ -33,6 +33,7 @@ export function usePermission() {
 
   return {
     permissions,
+    user,
     isLoading,
     can,
     canAny,

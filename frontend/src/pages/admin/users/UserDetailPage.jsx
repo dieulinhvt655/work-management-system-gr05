@@ -5,6 +5,7 @@ import { Link, Navigate, Outlet, useParams } from 'react-router-dom'
 import {
   fetchDepartments,
   fetchUserById,
+  fetchRoles,
   updateUser,
   updateUserRole,
   updateUserStatus,
@@ -15,6 +16,7 @@ import UserAvatar from '../../../components/common/UserAvatar'
 import Button from '../../../components/ui/Button'
 import { PERMISSIONS } from '../../../constants/permissions'
 import { USER_ACCOUNT_STATUS } from '../../../constants/users'
+import { useAuth } from '../../../context/AuthContext'
 import PermissionRoute from '../../../routes/PermissionRoute'
 import { getErrorMessage } from '../../../utils/getErrorMessage'
 import ChangeRoleModal from './components/ChangeRoleModal'
@@ -24,11 +26,12 @@ import UserStatusBadge from './components/UserStatusBadge'
 
 const USER_QUERY_KEY = (userId) => ['admin', 'users', userId]
 const DEPARTMENTS_QUERY_KEY = ['admin', 'departments']
-const USERS_LIST_QUERY_KEY = ['admin', 'users', 'grouped-by-workspace']
+const USERS_LIST_QUERY_KEY = ['admin', 'users']
 
 export default function UserDetailPage() {
   const { userId } = useParams()
   const queryClient = useQueryClient()
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [showEdit, setShowEdit] = useState(false)
   const [showRole, setShowRole] = useState(false)
   const [actionError, setActionError] = useState('')
@@ -40,6 +43,13 @@ export default function UserDetailPage() {
   } = useQuery({
     queryKey: USER_QUERY_KEY(userId),
     queryFn: () => fetchUserById(userId),
+    enabled: isAuthenticated && !authLoading && Boolean(userId),
+  })
+
+  const { data: roles = [] } = useQuery({
+    queryKey: ['admin', 'roles'],
+    queryFn: fetchRoles,
+    enabled: isAuthenticated && !authLoading,
   })
 
   const { data: departments = [] } = useQuery({
@@ -118,7 +128,7 @@ export default function UserDetailPage() {
     updateStatusMutation.mutate({ id: user.id, status: nextStatus })
   }
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return <LoadingScreen />
   }
 
@@ -145,7 +155,10 @@ export default function UserDetailPage() {
                 <p className="user-detail-page__email">{user.email}</p>
                 <div className="user-detail-page__meta">
                   <UserStatusBadge status={user.status} />
-                  <code className="user-table__code">{user.employeeCode}</code>
+                  <span className="user-detail-page__employee-code">
+                    <span className="user-detail-page__employee-code-label">Mã NV</span>
+                    <code className="user-table__code">{user.employeeCode}</code>
+                  </span>
                 </div>
               </div>
             </div>
@@ -210,6 +223,7 @@ export default function UserDetailPage() {
         {showRole && (
           <ChangeRoleModal
             user={user}
+            roles={roles}
             onClose={() => {
               setShowRole(false)
               setActionError('')

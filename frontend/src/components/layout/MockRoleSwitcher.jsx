@@ -17,7 +17,7 @@ export default function MockRoleSwitcher() {
     if (!mockRole) return
 
     const nextUser = switchMockRole(mockRole)
-    navigate(getDefaultRoute(nextUser?.permissions), { replace: true })
+    navigate(getDefaultRoute(nextUser?.permissions, nextUser), { replace: true })
   }
 
   return (

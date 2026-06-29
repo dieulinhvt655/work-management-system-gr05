@@ -3,9 +3,9 @@ import LoadingScreen from '../components/common/LoadingScreen'
 import { usePermission } from '../hooks/usePermission'
 
 export default function PermissionRoute({ permission, anyOf, children }) {
-  const { can, canAny, isLoading } = usePermission()
+  const { user, can, canAny, isLoading } = usePermission()
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return <LoadingScreen />
   }
 

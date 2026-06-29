@@ -9,8 +9,8 @@ import { useAuth } from '../context/AuthContext'
 export function useWorkspaceScope() {
   const { user } = useAuth()
 
-  const workspaceId = user?.workspaceId ?? null
   const managedWorkspaceIds = user?.managedWorkspaceIds ?? []
+  const workspaceId = user?.workspaceId ?? managedWorkspaceIds[0] ?? null
 
   const canAccessWorkspace = useCallback(
     (targetWorkspaceId) => {

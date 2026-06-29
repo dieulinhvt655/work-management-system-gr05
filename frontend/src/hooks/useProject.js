@@ -1,19 +1,27 @@
-import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { getMockProjectById } from '../constants/mock/projects'
+import { fetchProjectById } from '../api/projectsApi'
+import { useAuth } from '../context/AuthContext'
 
 export function useProject() {
   const { projectId } = useParams()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
+  const workspaceId = user?.workspaceId
 
-  const project = useMemo(
-    () => (projectId ? getMockProjectById(projectId) : null),
-    [projectId],
-  )
+  const {
+    data: project,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['projects', workspaceId, projectId],
+    queryFn: () => fetchProjectById(projectId, workspaceId),
+    enabled: isAuthenticated && !authLoading && Boolean(projectId),
+  })
 
   return {
     projectId,
-    project,
-    isLoading: false,
-    notFound: Boolean(projectId && !project),
+    project: project ?? null,
+    isLoading: authLoading || isLoading,
+    notFound: Boolean(projectId && !isLoading && (isError || !project)),
   }
 }

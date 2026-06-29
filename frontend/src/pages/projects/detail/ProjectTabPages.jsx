@@ -25,21 +25,29 @@ export function ProjectOverviewPage() {
       <ProjectTabShell title="Tổng quan">
         <div className="project-overview-grid">
           <div className="project-stat-card">
-            <p className="project-stat-card__label">Tiến độ</p>
-            <p className="project-stat-card__value">{project?.progress}%</p>
-          </div>
-          <div className="project-stat-card">
-            <p className="project-stat-card__label">Tasks</p>
-            <p className="project-stat-card__value">{project?.taskCount}</p>
+            <p className="project-stat-card__label">Trạng thái</p>
+            <p className="project-stat-card__value">{project?.status ?? '—'}</p>
           </div>
           <div className="project-stat-card">
             <p className="project-stat-card__label">Thành viên</p>
-            <p className="project-stat-card__value">{project?.memberCount}</p>
+            <p className="project-stat-card__value">{project?.memberCount ?? 0}</p>
+          </div>
+          <div className="project-stat-card">
+            <p className="project-stat-card__label">Project Manager</p>
+            <p className="project-stat-card__value project-stat-card__text">
+              {project?.managerName ?? '—'}
+            </p>
           </div>
           <div className="project-stat-card project-stat-card--wide">
             <p className="project-stat-card__label">Mô tả</p>
             <p className="project-stat-card__text">{project?.description}</p>
           </div>
+          {project?.objective && (
+            <div className="project-stat-card project-stat-card--wide">
+              <p className="project-stat-card__label">Mục tiêu</p>
+              <p className="project-stat-card__text">{project.objective}</p>
+            </div>
+          )}
         </div>
       </ProjectTabShell>
     </PermissionRoute>

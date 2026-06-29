@@ -1,0 +1,533 @@
+/* ─── Admin module (uses tokens from index.css :root) ─── */
+
+.assign-accounts-page {
+  --admin-control-bg: var(--color-primary-light);
+  --admin-control-border: var(--color-border);
+  --admin-card-shadow: var(--shadow-card);
+}
+
+.admin-dashboard-page__header,
+.assign-accounts-page__header,
+.account-status-page__header {
+  margin-bottom: 1.5rem;
+}
+
+.admin-dashboard-page__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.assign-accounts-page__breadcrumbs,
+.account-status-page__breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  margin-bottom: 0.875rem;
+}
+
+.assign-accounts-page__breadcrumbs svg,
+.account-status-page__breadcrumbs svg {
+  color: var(--color-border-strong);
+  flex-shrink: 0;
+}
+
+.assign-accounts-page__breadcrumbs a,
+.account-status-page__breadcrumbs a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.assign-accounts-page__breadcrumbs a:hover,
+.account-status-page__breadcrumbs a:hover {
+  color: var(--color-accent);
+}
+
+.assign-accounts-page__breadcrumbs [aria-current='page'],
+.account-status-page__breadcrumbs [aria-current='page'] {
+  color: var(--color-heading);
+  font-weight: 500;
+}
+
+.admin-dashboard-page__title,
+.assign-accounts-page__title,
+.account-status-page__title,
+.create-user-page__intro h1,
+.create-workspace-page__intro h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+}
+
+.admin-dashboard-page__subtitle,
+.assign-accounts-page__subtitle,
+.account-status-page__subtitle,
+.create-user-page__intro p,
+.create-workspace-page__intro p {
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 52rem;
+  line-height: 1.6;
+  font-size: 0.9375rem;
+}
+
+/* ─── Admin Dashboard ─── */
+
+.admin-dashboard-page__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-stat-card {
+  display: flex;
+  gap: 0.875rem;
+  align-items: center;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-stat-card:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--admin-card-shadow, var(--shadow-card));
+}
+
+.admin-stat-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-light);
+  color: var(--color-heading);
+}
+
+.admin-stat-card--primary .admin-stat-card__icon {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.admin-stat-card--success .admin-stat-card__icon {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.admin-stat-card--violet .admin-stat-card__icon {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.admin-stat-card--slate .admin-stat-card__icon {
+  background: var(--color-primary-light);
+  color: var(--color-text);
+}
+
+.admin-stat-card__label,
+.admin-stat-card__value {
+  margin: 0;
+}
+
+.admin-stat-card__label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.admin-stat-card__value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.admin-dashboard-page__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.admin-action-card {
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-action-card__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.0625rem;
+  color: var(--color-heading);
+}
+
+.admin-action-card__text {
+  margin: 0 0 1rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  font-size: 0.9375rem;
+}
+
+.admin-action-card__link {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.admin-action-card__link:hover {
+  color: var(--color-primary-hover);
+}
+
+/* ─── Assign Accounts to Workspace ─── */
+
+.assign-accounts-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem 1.375rem 1.375rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--admin-card-shadow);
+}
+
+.assign-accounts-form__error {
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius-md);
+  background: #fef2f2;
+  color: var(--color-danger);
+  font-size: 0.875rem;
+}
+
+.assign-accounts-form__controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.25rem;
+}
+
+.assign-accounts-field .field__label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.assign-accounts-field .field__input {
+  background: var(--admin-control-bg);
+  border-color: var(--admin-control-border);
+  border-radius: var(--radius-md);
+  min-height: 2.75rem;
+}
+
+.assign-accounts-field .field__input:focus {
+  border-color: #93c5fd;
+  background: var(--color-surface);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.assign-accounts-form__list-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.assign-accounts-form__list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.875rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.assign-accounts-form__search {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 1;
+  min-width: min(100%, 280px);
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--admin-control-border);
+  border-radius: var(--radius-md);
+  background: var(--admin-control-bg);
+  color: var(--color-text-muted);
+}
+
+.assign-accounts-form__search:focus-within {
+  border-color: #93c5fd;
+  background: var(--color-surface);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.assign-accounts-form__search input {
+  border: 0;
+  outline: none;
+  width: 100%;
+  background: transparent;
+  color: var(--color-heading);
+  font-size: 0.9375rem;
+}
+
+.assign-accounts-form__search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.assign-accounts-form__search input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.assign-accounts-form__select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.assign-accounts-form__select-all input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-accent);
+}
+
+.assign-accounts-form__empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 16rem;
+  margin: 1rem;
+  padding: 2rem 1.5rem;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  text-align: center;
+}
+
+.assign-accounts-form__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  color: var(--color-text-muted);
+}
+
+.assign-accounts-form__empty-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.assign-accounts-form__empty-text {
+  margin: 0;
+  max-width: 28rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.assign-accounts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 22rem;
+  overflow: auto;
+}
+
+.assign-accounts-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.assign-accounts-list__item:last-child {
+  border-bottom: 0;
+}
+
+.assign-accounts-list__item:hover {
+  background: var(--color-bg);
+}
+
+.assign-accounts-list__item--selected {
+  background: var(--color-accent-soft);
+}
+
+.assign-accounts-list__item--selected:hover {
+  background: var(--color-accent-soft-hover);
+}
+
+.assign-accounts-list__item input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.assign-accounts-list__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.assign-accounts-list__info strong {
+  font-size: 0.9375rem;
+  color: var(--color-heading);
+}
+
+.assign-accounts-list__info span {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.assign-accounts-list__meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.assign-accounts-form__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.25rem;
+}
+
+.assign-accounts-form__selected-count {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+}
+
+.assign-accounts-form__selected-count strong {
+  color: var(--color-heading);
+  font-weight: 700;
+}
+
+.assign-accounts-form__submit.btn {
+  width: auto;
+  min-width: 12rem;
+  margin-top: 0;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-surface);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.assign-accounts-form__submit.btn:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.assign-accounts-form__submit.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.create-user-page__intro,
+.create-workspace-page__intro {
+  margin-bottom: 1.25rem;
+}
+
+/* ─── Account Status ─── */
+
+.account-status-page__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.account-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.account-status-chip--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.account-status-page__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.account-status-page__tab {
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.account-status-page__tab--active {
+  background: var(--color-heading);
+  border-color: var(--color-heading);
+  color: var(--color-surface);
+}
+
+@media (max-width: 768px) {
+  .assign-accounts-form__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .assign-accounts-form__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .assign-accounts-form__submit.btn {
+    width: 100%;
+  }
+}

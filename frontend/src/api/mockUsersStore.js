@@ -115,15 +115,30 @@ function findUserByEmail(email) {
   return null
 }
 
-function findUserByEmployeeCode(employeeCode) {
-  const normalized = employeeCode.trim().toLowerCase()
+function findUserByUsername(username) {
+  const normalized = username.trim().toLowerCase()
   for (const group of groupedUsers) {
     const user = group.users.find(
-      (entry) => entry.employeeCode.trim().toLowerCase() === normalized,
+      (entry) => entry.username?.trim().toLowerCase() === normalized,
     )
     if (user) return user
   }
   return null
+}
+
+function getNextEmployeeCode() {
+  let max = 0
+
+  for (const group of groupedUsers) {
+    for (const user of group.users) {
+      const match = user.employeeCode?.match(/^NV(\d+)$/i)
+      if (match) {
+        max = Math.max(max, Number(match[1]))
+      }
+    }
+  }
+
+  return `NV${String(max + 1).padStart(3, '0')}`
 }
 
 function createUserId() {
@@ -137,8 +152,8 @@ export async function mockCreateUser(payload) {
     throw new Error('Email công việc đã được sử dụng')
   }
 
-  if (findUserByEmployeeCode(payload.employeeCode)) {
-    throw new Error('Mã nhân viên đã tồn tại')
+  if (findUserByUsername(payload.username)) {
+    throw new Error('Username đã được sử dụng')
   }
 
   const group = groupedUsers.find(
@@ -153,7 +168,8 @@ export async function mockCreateUser(payload) {
     id: createUserId(),
     fullName: payload.fullName.trim(),
     email: payload.email.trim(),
-    employeeCode: payload.employeeCode.trim(),
+    username: payload.username.trim(),
+    employeeCode: getNextEmployeeCode(),
     departmentId: payload.departmentId,
     departmentName: getDepartmentName(payload.departmentId),
     position: payload.position.trim(),
