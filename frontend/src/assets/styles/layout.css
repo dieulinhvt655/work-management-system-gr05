@@ -120,12 +120,12 @@
   white-space: nowrap;
 }
 
-.sidebar__link:hover {
+.sidebar__link:hover:not(.sidebar__link--active) {
   background: var(--color-accent-soft);
   color: var(--color-accent);
 }
 
-.sidebar__link:hover svg {
+.sidebar__link:hover:not(.sidebar__link--active) svg {
   color: var(--color-accent);
 }
 
@@ -136,6 +136,11 @@
 }
 
 .sidebar__link--active svg {
+  color: var(--color-accent);
+}
+
+.sidebar__link--active:hover {
+  background: var(--color-accent-soft);
   color: var(--color-accent);
 }
 
@@ -163,14 +168,27 @@
   transition: color 0.15s ease;
 }
 
-.sidebar__group-toggle:hover,
-.sidebar__group-toggle--active {
+.sidebar__group-toggle:hover:not(.sidebar__group-toggle--active) {
   background: var(--color-accent-soft);
   color: var(--color-accent);
 }
 
-.sidebar__group-toggle:hover svg,
+.sidebar__group-toggle:hover:not(.sidebar__group-toggle--active) svg {
+  color: var(--color-accent);
+}
+
+.sidebar__group-toggle--active {
+  color: var(--color-accent);
+  font-weight: 600;
+  background: transparent;
+}
+
 .sidebar__group-toggle--active svg {
+  color: var(--color-accent);
+}
+
+.sidebar__group-toggle--active:hover {
+  background: var(--color-accent-soft);
   color: var(--color-accent);
 }
 
@@ -212,7 +230,7 @@
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.sidebar__sublink:hover {
+.sidebar__sublink:hover:not(.sidebar__sublink--active) {
   background: var(--color-accent-soft);
   color: var(--color-accent);
 }
@@ -221,6 +239,11 @@
   background: var(--color-accent-soft);
   color: var(--color-accent);
   font-weight: 600;
+}
+
+.sidebar__sublink--active:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 
 .header__mock-switcher {

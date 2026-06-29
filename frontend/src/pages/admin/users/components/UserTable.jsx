@@ -85,8 +85,8 @@ export default function UserTable({
                 <td className="user-table__truncate" title={user.departmentName}>
                   {user.departmentName ?? '—'}
                 </td>
-                <td className="user-table__truncate" title={USER_ROLE_LABELS[user.role]}>
-                  {USER_ROLE_LABELS[user.role] ?? user.role}
+                <td className="user-table__truncate" title={user.roleName ?? USER_ROLE_LABELS[user.role]}>
+                  {user.roleName ?? USER_ROLE_LABELS[user.role] ?? 'Chưa gán'}
                 </td>
                 <td>
                   <UserStatusBadge status={user.status} />

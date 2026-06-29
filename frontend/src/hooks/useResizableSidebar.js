@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'wms-sidebar-width'
-const DEFAULT_WIDTH = 240
-const MIN_WIDTH = 200
+const DEFAULT_WIDTH = 268
+const MIN_WIDTH = 220
 const MAX_WIDTH = 420
 
 function readStoredWidth() {

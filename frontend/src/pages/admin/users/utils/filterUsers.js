@@ -6,12 +6,13 @@ export function filterUsers(users = [], filters) {
       const matchesSearch =
         user.fullName?.toLowerCase().includes(query) ||
         user.email?.toLowerCase().includes(query) ||
-        user.employeeCode?.toLowerCase().includes(query)
+        user.employeeCode?.toLowerCase().includes(query) ||
+        user.username?.toLowerCase().includes(query)
 
       if (!matchesSearch) return false
     }
 
-    if (filters.role && user.role !== filters.role) {
+    if (filters.role && String(user.roleId) !== String(filters.role)) {
       return false
     }
 

@@ -3,8 +3,8 @@ import { getDefaultRoute } from '../../utils/navUtils'
 import { useAuth } from '../../context/AuthContext'
 
 export default function ForbiddenPage() {
-  const { permissions } = useAuth()
-  const fallback = getDefaultRoute(permissions)
+  const { permissions, user } = useAuth()
+  const fallback = getDefaultRoute(permissions, user)
 
   return (
     <div className="page page-forbidden">

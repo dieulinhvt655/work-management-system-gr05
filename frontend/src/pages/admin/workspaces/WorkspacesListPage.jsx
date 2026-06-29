@@ -12,7 +12,6 @@ import LoadingScreen from '../../../components/common/LoadingScreen'
 import PermissionGate from '../../../components/common/PermissionGate'
 import Toast from '../../../components/common/Toast'
 import { PERMISSIONS } from '../../../constants/permissions'
-import { WORKSPACE_STATUS } from '../../../constants/workspaces'
 import PermissionRoute from '../../../routes/PermissionRoute'
 import { getErrorMessage } from '../../../utils/getErrorMessage'
 import EditWorkspaceModal from './components/EditWorkspaceModal'
@@ -88,8 +87,7 @@ export default function WorkspacesListPage() {
   })
 
   const disableWorkspaceMutation = useMutation({
-    mutationFn: (workspaceId) =>
-      updateWorkspaceStatus(workspaceId, WORKSPACE_STATUS.DISABLED),
+    mutationFn: (workspaceId) => updateWorkspaceStatus(workspaceId),
     onSuccess: () => {
       invalidateWorkspaces()
       setToastMessage('Đã vô hiệu hóa Workspace')
@@ -104,11 +102,8 @@ export default function WorkspacesListPage() {
     updateWorkspaceMutation.mutate({
       workspaceId,
       payload: {
-        ...values,
-        contactPhone: values.contactPhone?.trim() || '',
-        address: values.address?.trim() || '',
+        name: values.name,
         description: values.description?.trim() || '',
-        logoUrl: values.logoUrl?.trim() || '',
       },
     })
   }
@@ -132,6 +127,15 @@ export default function WorkspacesListPage() {
       )}
 
       <div className="page page--wide workspaces-page">
+        <header className="workspaces-page__title-bar">
+          <div>
+            <h1 className="workspaces-page__title">Workspaces</h1>
+            <p className="workspaces-page__subtitle">
+              Xem và quản lý danh sách workspace trên hệ thống.
+            </p>
+          </div>
+        </header>
+
         <PermissionGate permission={PERMISSIONS.WORKSPACE_ADMIN_CREATE}>
           <header className="page__header page__header--row page__header--actions-only workspaces-page__header">
             <Link
@@ -186,7 +190,6 @@ export default function WorkspacesListPage() {
         {editWorkspace && (
           <EditWorkspaceModal
             workspace={editWorkspace}
-            owners={owners}
             onClose={() => {
               setEditWorkspace(null)
               setActionError('')

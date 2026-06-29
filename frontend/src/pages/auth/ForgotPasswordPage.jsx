@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
-import { requestPasswordReset } from '../../api/authApi'
+import { requestPasswordReset } from '../../api/authService'
 import AuthBackLink from '../../components/common/AuthBackLink'
 import AuthBrand from '../../components/common/AuthBrand'
 import Button from '../../components/ui/Button'
@@ -30,8 +30,11 @@ export default function ForgotPasswordPage() {
     setSubmitError('')
 
     try {
-      await requestPasswordReset(email)
-      navigate('/forgot-password/sent', { state: { email }, replace: true })
+      const result = await requestPasswordReset(email)
+      navigate('/forgot-password/sent', {
+        state: { email, message: result.message },
+        replace: true,
+      })
     } catch (error) {
       setSubmitError(
         getErrorMessage(error, 'Không thể gửi link đặt lại mật khẩu. Vui lòng thử lại.'),

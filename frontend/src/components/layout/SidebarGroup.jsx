@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
+import { isNavItemActive } from '../../utils/navUtils'
 
 export default function SidebarGroup({ item }) {
   const location = useLocation()
-  const hasActiveChild = item.children.some(
-    (child) =>
-      location.pathname === child.to ||
-      location.pathname.startsWith(`${child.to}/`),
+  const hasActiveChild = item.children.some((child) =>
+    isNavItemActive(location.pathname, child.to, item.children),
   )
   const [open, setOpen] = useState(hasActiveChild)
   const Icon = item.icon
@@ -22,7 +21,7 @@ export default function SidebarGroup({ item }) {
       >
         <span className="sidebar__link-content">
           {Icon && <Icon size={18} aria-hidden="true" />}
-          <span className="sidebar__link-label">{item.label}</span>
+          <span className="sidebar__link-label" title={item.label}>{item.label}</span>
         </span>
         <ChevronDown
           size={16}
@@ -33,17 +32,25 @@ export default function SidebarGroup({ item }) {
 
       {open && (
         <div className="sidebar__subnav">
-          {item.children.map((child) => (
-            <NavLink
-              key={child.id}
-              to={child.to}
-              className={({ isActive }) =>
-                `sidebar__sublink${isActive ? ' sidebar__sublink--active' : ''}`
-              }
-            >
-              {child.label}
-            </NavLink>
-          ))}
+          {item.children.map((child) => {
+            const active = isNavItemActive(
+              location.pathname,
+              child.to,
+              item.children,
+            )
+
+            return (
+              <Link
+                key={child.id}
+                to={child.to}
+                title={child.label}
+                className={`sidebar__sublink${active ? ' sidebar__sublink--active' : ''}`}
+                aria-current={active ? 'page' : undefined}
+              >
+                {child.label}
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>

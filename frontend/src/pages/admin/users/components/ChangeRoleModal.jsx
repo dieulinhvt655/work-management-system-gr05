@@ -2,25 +2,25 @@ import { useState } from 'react'
 import Button from '../../../../components/ui/Button'
 import Modal from '../../../../components/ui/Modal'
 import SelectField from '../../../../components/ui/SelectField'
-import { USER_ROLE_OPTIONS } from '../../../../constants/users'
 
 export default function ChangeRoleModal({
   user,
+  roles = [],
   onClose,
   onSave,
   isSaving = false,
   saveError = '',
 }) {
-  const [role, setRole] = useState(user.role)
+  const [roleId, setRoleId] = useState(String(user.roleId ?? ''))
   const [error, setError] = useState('')
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    if (!role) {
+    if (!roleId) {
       setError('Vui lòng chọn vai trò')
       return
     }
-    onSave(user.id, role)
+    onSave(user.id, roleId)
   }
 
   return (
@@ -40,15 +40,15 @@ export default function ChangeRoleModal({
         <SelectField
           id="change-role"
           label="Vai trò mới"
-          value={role}
+          value={roleId}
           onChange={(event) => {
-            setRole(event.target.value)
+            setRoleId(event.target.value)
             setError('')
           }}
         >
-          {USER_ROLE_OPTIONS.map(({ value, label }) => (
-            <option key={value} value={value}>
-              {label}
+          {roles.map((role) => (
+            <option key={role.id} value={role.id}>
+              {role.name}
             </option>
           ))}
         </SelectField>

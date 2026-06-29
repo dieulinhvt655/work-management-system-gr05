@@ -8,12 +8,16 @@ import { useAuth } from '../context/AuthContext'
 import LoginPage from '../pages/auth/LoginPage'
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage'
 import CheckEmailPage from '../pages/auth/CheckEmailPage'
+import ResetPasswordPage from '../pages/auth/ResetPasswordPage'
 import ForbiddenPage from '../pages/errors/ForbiddenPage'
 import WelcomePage from '../pages/welcome/WelcomePage'
+import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 import WorkspacesListPage from '../pages/admin/workspaces/WorkspacesListPage'
 import CreateWorkspacePage from '../pages/admin/workspaces/CreateWorkspacePage'
+import AssignAccountsToWorkspacePage from '../pages/admin/workspaces/AssignAccountsToWorkspacePage'
 import UsersListPage from '../pages/admin/users/UsersListPage'
 import CreateUserPage from '../pages/admin/users/CreateUserPage'
+import AccountStatusPage from '../pages/admin/users/AccountStatusPage'
 import UserDetailPage from '../pages/admin/users/UserDetailPage'
 import UserGeneralTab from '../pages/admin/users/detail/UserGeneralTab'
 import UserRolesTab from '../pages/admin/users/detail/UserRolesTab'
@@ -31,18 +35,29 @@ import {
   ProjectDocsPage,
   ProjectActivityPage,
 } from '../pages/projects/detail/ProjectTabPages'
+import RolesListPage from '../pages/admin/roles/RolesListPage'
+import TeamsListPage from '../pages/teams/TeamsListPage'
+import CreateTeamPage from '../pages/teams/CreateTeamPage'
+import AssignMembersToTeamPage from '../pages/teams/AssignMembersToTeamPage'
+import MembersListPage from '../pages/members/MembersListPage'
+import MemberDetailPage from '../pages/members/MemberDetailPage'
+import ProfilePage from '../pages/profile/ProfilePage'
+import WorkspaceDashboardPage from '../pages/dashboard/WorkspaceDashboardPage'
+import WorkspaceInfoPage from '../pages/workspace/WorkspaceInfoPage'
+import WorkspaceActivityPage from '../pages/workspace/WorkspaceActivityPage'
+import WorkspaceRolesPage from '../pages/workspace/WorkspaceRolesPage'
 import PermissionRoute from './PermissionRoute'
 import { getDefaultRoute } from '../utils/navUtils'
 
 function LandingRoute() {
-  const { isAuthenticated, isLoading, permissions } = useAuth()
+  const { isAuthenticated, isLoading, permissions, user } = useAuth()
 
   if (isLoading) {
     return <LoadingScreen />
   }
 
   if (isAuthenticated) {
-    return <Navigate to={getDefaultRoute(permissions)} replace />
+    return <Navigate to={getDefaultRoute(permissions, user)} replace />
   }
 
   return <WelcomePage />
@@ -63,25 +78,28 @@ function PrivateRoute() {
 }
 
 function PublicRoute() {
-  const { isAuthenticated, isLoading, permissions } = useAuth()
+  const { isAuthenticated, isLoading, permissions, user } = useAuth()
 
   if (isLoading) {
     return <LoadingScreen />
   }
 
   if (isAuthenticated) {
-    return <Navigate to={getDefaultRoute(permissions)} replace />
+    return <Navigate to={getDefaultRoute(permissions, user)} replace />
   }
 
   return <Outlet />
 }
 
 function ProtectedPage({ path, title, description }) {
-  return (
-    <PermissionRoute permission={ROUTE_PERMISSIONS[path]}>
-      <PagePlaceholder title={title} description={description} />
-    </PermissionRoute>
-  )
+  const content = <PagePlaceholder title={title} description={description} />
+  const permission = ROUTE_PERMISSIONS[path]
+
+  if (!permission) {
+    return content
+  }
+
+  return <PermissionRoute permission={permission}>{content}</PermissionRoute>
 }
 
 export default function AppRoutes() {
@@ -92,6 +110,7 @@ export default function AppRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/forgot-password/sent" element={<CheckEmailPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Route>
       </Route>
 
@@ -101,31 +120,11 @@ export default function AppRoutes() {
         <Route element={<AppLayout />}>
           <Route
             path="/dashboard"
-            element={<Navigate to="/dashboard/my" replace />}
+            element={<Navigate to="/dashboard/workspace" replace />}
           />
           <Route
             path="/dashboard/workspace"
-            element={
-              <ProtectedPage
-                path="/dashboard/workspace"
-                title="Workspace Dashboard"
-              />
-            }
-          />
-          <Route
-            path="/dashboard/team"
-            element={
-              <ProtectedPage path="/dashboard/team" title="Team Dashboard" />
-            }
-          />
-          <Route
-            path="/dashboard/project"
-            element={
-              <ProtectedPage
-                path="/dashboard/project"
-                title="Project Dashboard"
-              />
-            }
+            element={<WorkspaceDashboardPage />}
           />
           <Route
             path="/dashboard/my"
@@ -134,8 +133,14 @@ export default function AppRoutes() {
             }
           />
 
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+
           <Route path="/admin/workspaces" element={<WorkspacesListPage />} />
           <Route path="/admin/workspaces/create" element={<CreateWorkspacePage />} />
+          <Route
+            path="/admin/workspaces/assign-accounts"
+            element={<AssignAccountsToWorkspacePage />}
+          />
           <Route
             path="/admin/workspaces/activity"
             element={
@@ -146,15 +151,8 @@ export default function AppRoutes() {
             }
           />
 
-          <Route
-            path="/workspace/info"
-            element={
-              <ProtectedPage
-                path="/workspace/info"
-                title="Thông tin Workspace"
-              />
-            }
-          />
+          <Route path="/workspace/info" element={<WorkspaceInfoPage />} />
+          <Route path="/workspace/roles" element={<WorkspaceRolesPage />} />
           <Route
             path="/workspace/settings"
             element={
@@ -164,27 +162,11 @@ export default function AppRoutes() {
               />
             }
           />
-          <Route
-            path="/workspace/activity"
-            element={
-              <ProtectedPage
-                path="/workspace/activity"
-                title="Workspace Activity"
-              />
-            }
-          />
+          <Route path="/workspace/activity" element={<WorkspaceActivityPage />} />
 
           <Route path="/admin/users" element={<UsersListPage />} />
           <Route path="/admin/users/create" element={<CreateUserPage />} />
-          <Route
-            path="/admin/users/status"
-            element={
-              <ProtectedPage
-                path="/admin/users/status"
-                title="Trạng thái tài khoản"
-              />
-            }
-          />
+          <Route path="/admin/users/status" element={<AccountStatusPage />} />
           <Route path="/admin/users/:userId" element={<UserDetailPage />}>
             <Route index element={<UserGeneralTab />} />
             <Route path="roles" element={<UserRolesTab />} />
@@ -192,37 +174,15 @@ export default function AppRoutes() {
             <Route path="activity" element={<UserActivityTab />} />
           </Route>
 
+          <Route path="/teams" element={<TeamsListPage />} />
+          <Route path="/teams/create" element={<CreateTeamPage />} />
           <Route
-            path="/teams"
-            element={
-              <ProtectedPage path="/teams" title="Danh sách Team" />
-            }
-          />
-          <Route
-            path="/teams/departments"
-            element={
-              <ProtectedPage
-                path="/teams/departments"
-                title="Danh sách Department"
-              />
-            }
-          />
-          <Route
-            path="/teams/assignments"
-            element={
-              <ProtectedPage
-                path="/teams/assignments"
-                title="Phân công thành viên"
-              />
-            }
+            path="/teams/assign-members"
+            element={<AssignMembersToTeamPage />}
           />
 
-          <Route
-            path="/members"
-            element={
-              <ProtectedPage path="/members" title="Danh sách thành viên" />
-            }
-          />
+          <Route path="/members" element={<MembersListPage />} />
+          <Route path="/members/:memberId" element={<MemberDetailPage />} />
           <Route
             path="/members/invite"
             element={
@@ -240,13 +200,33 @@ export default function AppRoutes() {
           />
 
           <Route
-            path="/roles"
+            path="/my-team"
             element={
-              <ProtectedPage path="/roles" title="Roles & Permissions" />
+              <ProtectedPage path="/my-team" title="My Team" />
+            }
+          />
+          <Route
+            path="/my-team/members"
+            element={
+              <ProtectedPage path="/my-team/members" title="Team Members" />
             }
           />
 
+          <Route path="/roles" element={<RolesListPage />} />
+
           <Route path="/projects" element={<ProjectsListPage />} />
+          <Route
+            path="/projects/create"
+            element={
+              <ProtectedPage path="/projects/create" title="Create Project" />
+            }
+          />
+          <Route
+            path="/projects/activity"
+            element={
+              <ProtectedPage path="/projects/activity" title="Project Activity" />
+            }
+          />
           <Route path="/projects/:projectId" element={<ProjectLayout />}>
             <Route index element={<ProjectIndexRedirect />} />
             <Route path="overview" element={<ProjectOverviewPage />} />
@@ -296,12 +276,7 @@ export default function AppRoutes() {
             element={<ProtectedPage path="/admin/settings" title="Settings" />}
           />
 
-          <Route
-            path="/profile"
-            element={
-              <ProtectedPage path="/profile" title="Hồ sơ cá nhân" />
-            }
-          />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>
 
