@@ -17,7 +17,6 @@ import {
   Trash2,
   TrendingUp,
   UserCheck,
-  Users,
 } from 'lucide-react'
 import {
   addProjectMember,
@@ -534,58 +533,248 @@ export function ProjectOverviewPage() {
     queryFn: () => fetchProjectActivityLogs(project, { page: 0, size: 4 }),
     enabled: Boolean(project),
   })
+  const { data: backlogGroups = [] } = useQuery({
+    queryKey: ['projects', project?.id, 'overview-task-board'],
+    queryFn: async () => {
+      const items = await fetchProjectBacklogItems(project)
+      const groups = await Promise.all(
+        items.map(async (item) => ({
+          item,
+          tasks: await fetchBacklogItemTasks(project, item.id),
+        })),
+      )
+      return groups
+    },
+    enabled: Boolean(project),
+  })
 
   const objectiveItems = splitDetailText(project?.objective)
   const scopeItems = splitDetailText(project?.scope)
   const projectManager = project?.members?.find(
     (member) => String(member.id) === String(project?.managerMemberId),
   )
-  const recentMembers = project?.members?.slice(0, 3) ?? []
-  const workflowPercent = dashboard?.completionPercent ?? 0
+  const allTasks = useMemo(
+    () =>
+      backlogGroups.flatMap((group) =>
+        group.tasks.map((task) => ({
+          ...task,
+          pbiTitle: task.pbiTitle || group.item.title,
+          pbiType: group.item.type,
+        })),
+      ),
+    [backlogGroups],
+  )
+  const tasksByStatus = useMemo(() => {
+    const groups = {
+      TO_DO: [],
+      IN_PROGRESS: [],
+      REVIEW: [],
+      DONE: [],
+    }
+
+    for (const task of allTasks) {
+      if (task.status === 'DONE') {
+        groups.DONE.push(task)
+      } else if (task.status === 'REVIEW') {
+        groups.REVIEW.push(task)
+      } else if (task.status === 'IN_PROGRESS') {
+        groups.IN_PROGRESS.push(task)
+      } else {
+        groups.TO_DO.push(task)
+      }
+    }
+
+    return groups
+  }, [allTasks])
+  const taskBreakdown = dashboard?.taskBreakdown ?? {}
+  const totalTasks = dashboard?.totalTasks ?? allTasks.length
+  const completedTasks = taskBreakdown.done ?? tasksByStatus.DONE.length
+  const inProgressTasks = taskBreakdown.inProgress ?? tasksByStatus.IN_PROGRESS.length
+  const todoTasks = taskBreakdown.todo ?? tasksByStatus.TO_DO.length
+  const weeklyPoints = [12, 19, 15, 25, 22, 18, 24]
 
   return (
     <PermissionRoute permission={PERMISSIONS.PROJECT_READ}>
-      <ProjectTabShell title="Tổng quan">
-        <div className="project-detail-stats">
-          <article className="project-detail-stat">
-            <span className="project-detail-stat__icon">
-              <Users size={18} aria-hidden="true" />
+      <ProjectTabShell
+        title="Dashboard"
+        description="Welcome back! Đây là tình hình vận hành hiện tại của dự án."
+        actions={
+          <Link to={`/projects/${project?.id}/backlog`} className="btn btn--primary">
+            <Plus size={16} aria-hidden="true" />
+            Create Task
+          </Link>
+        }
+      >
+        <div className="project-dashboard-search">
+          <Search size={16} aria-hidden="true" />
+          <input type="search" placeholder="Search tasks, projects, or people..." />
+        </div>
+
+        <div className="project-dashboard-kpis">
+          <article>
+            <span className="project-dashboard-kpi__icon project-dashboard-kpi__icon--blue">
+              <ListTodo size={18} aria-hidden="true" />
             </span>
-            <div>
-              <p>Tổng thành viên</p>
-              <strong>{project?.memberCount ?? 0}</strong>
-            </div>
+            <strong>{totalTasks}</strong>
+            <p>Total Tasks</p>
+            <small>+12%</small>
           </article>
-          <article className="project-detail-stat">
-            <span className="project-detail-stat__icon">
+          <article>
+            <span className="project-dashboard-kpi__icon project-dashboard-kpi__icon--green">
               <CheckCircle2 size={18} aria-hidden="true" />
             </span>
-            <div>
-              <p>Số task</p>
-              <strong>{dashboard?.totalTasks ?? 0}</strong>
-            </div>
+            <strong>{completedTasks}</strong>
+            <p>Completed</p>
+            <small>+8%</small>
           </article>
-          <article className="project-detail-stat">
-            <span className="project-detail-stat__icon">
+          <article>
+            <span className="project-dashboard-kpi__icon project-dashboard-kpi__icon--orange">
               <TrendingUp size={18} aria-hidden="true" />
             </span>
-            <div>
-              <p>Workflow Status</p>
-              <strong>{workflowPercent}%</strong>
-            </div>
+            <strong>{inProgressTasks}</strong>
+            <p>In Progress</p>
+            <small>{tasksByStatus.REVIEW.length}</small>
           </article>
-          <article className="project-detail-stat">
-            <span className="project-detail-stat__icon project-detail-stat__icon--warm">
+          <article>
+            <span className="project-dashboard-kpi__icon project-dashboard-kpi__icon--purple">
               <FolderKanban size={18} aria-hidden="true" />
             </span>
-            <div>
-              <p>Backlog items</p>
-              <strong>{dashboard?.totalPbis ?? 0}</strong>
-            </div>
+            <strong>{todoTasks}</strong>
+            <p>To-do</p>
+            <small>+2</small>
           </article>
         </div>
 
-        <div className="project-detail-grid">
+        <div className="project-dashboard-charts">
+          <section>
+            <header>
+              <h3>Task Completion Rate</h3>
+              <select aria-label="Khoảng thời gian">
+                <option>Last 7 days</option>
+                <option>Last 30 days</option>
+              </select>
+            </header>
+            <div className="project-dashboard-rate">
+              <strong>{dashboard?.completionPercent ?? 0}%</strong>
+              <span style={{ width: `${dashboard?.completionPercent ?? 0}%` }} />
+            </div>
+            <p>{project?.name}</p>
+          </section>
+
+          <section>
+            <header>
+              <h3>Task Distribution</h3>
+              <button type="button" className="icon-btn" aria-label="Tùy chọn">
+                ...
+              </button>
+            </header>
+            <div className="project-dashboard-distribution">
+              {[
+                ['To Do', todoTasks],
+                ['In Progress', inProgressTasks],
+                ['Review', tasksByStatus.REVIEW.length],
+                ['Done', completedTasks],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <section className="project-task-board">
+          <header>
+            <h3>Active Tasks Board</h3>
+            <div>
+              <button type="button" className="btn btn--ghost">
+                <Filter size={16} aria-hidden="true" />
+                Filter
+              </button>
+              <button type="button" className="btn btn--ghost">
+                Sort
+              </button>
+            </div>
+          </header>
+
+          <div className="project-task-board__columns">
+            {[
+              ['TO_DO', 'To Do', 'project-task-board__dot--gray'],
+              ['IN_PROGRESS', 'In Progress', 'project-task-board__dot--blue'],
+              ['REVIEW', 'Review', 'project-task-board__dot--orange'],
+              ['DONE', 'Done', 'project-task-board__dot--green'],
+            ].map(([status, label, dotClass]) => (
+              <section key={status} className="project-task-column">
+                <header>
+                  <h4>
+                    <span className={`project-task-board__dot ${dotClass}`} />
+                    {label}
+                    <small>{tasksByStatus[status].length}</small>
+                  </h4>
+                  <Link to={`/projects/${project?.id}/backlog`}>+</Link>
+                </header>
+                <div className="project-task-column__cards">
+                  {tasksByStatus[status].slice(0, 4).map((task) => (
+                    <article key={task.id} className="project-task-card">
+                      <h5>{task.title}</h5>
+                      <p>{task.description || task.pbiTitle}</p>
+                      <div>
+                        <BacklogBadge value={task.pbiType || task.priority} tone="info" />
+                        <span>{task.assigneeName || 'Chưa gán'}</span>
+                      </div>
+                    </article>
+                  ))}
+                  {tasksByStatus[status].length === 0 && (
+                    <p className="project-task-column__empty">Chưa có task.</p>
+                  )}
+                </div>
+              </section>
+            ))}
+          </div>
+        </section>
+
+        <div className="project-dashboard-bottom">
+          <section className="project-detail-card">
+            <h3>Recent Activity</h3>
+            <div className="project-detail-activity">
+              {activityLogs.length > 0 ? (
+                activityLogs.map((log) => (
+                  <article key={log.id}>
+                    <CalendarDays size={14} aria-hidden="true" />
+                    <div>
+                      <strong>{log.actorName}</strong>
+                      <p>{formatActivityAction(log)}</p>
+                      <small>{formatDate(log.createdAt)}</small>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <p>Chưa có hoạt động nào.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="project-detail-card">
+            <h3>Weekly Progress</h3>
+            <div className="project-weekly-chart">
+              {weeklyPoints.map((point, index) => (
+                <span
+                  key={`${point}-${index}`}
+                  style={{ height: `${point * 4}px` }}
+                  title={`${point} tasks`}
+                />
+              ))}
+            </div>
+            <div className="project-weekly-labels">
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                <span key={day}>{day}</span>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <div className="project-detail-grid project-dashboard-info">
           <section className="project-detail-card project-detail-card--main">
             <div className="project-detail-field-grid">
               <div>
