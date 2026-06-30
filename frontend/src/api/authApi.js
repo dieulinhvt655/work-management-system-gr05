@@ -6,7 +6,7 @@ import {
   resolveWorkspaceScope,
 } from '../utils/backendAuthMapper'
 import { isWorkspaceOwnerUser } from '../utils/userRoleUtils'
-import { fetchWorkspaces } from './workspacesApi'
+import { resolveCurrentUserOrganization } from './userOrganizationApi'
 
 async function enrichUserWorkspaceScope(user) {
   if (!user || user.isSystemAdmin) {
@@ -14,13 +14,27 @@ async function enrichUserWorkspaceScope(user) {
   }
 
   try {
-    const workspaces = await fetchWorkspaces()
-    const managedWorkspaceIds = workspaces.map((workspace) => String(workspace.id))
+    const organization = await resolveCurrentUserOrganization(user)
+
+    if (!organization) {
+      return user
+    }
 
     return {
       ...user,
-      workspaceId: managedWorkspaceIds[0] ?? user.workspaceId ?? null,
-      managedWorkspaceIds,
+      workspaceId: organization.workspaceId ?? user.workspaceId ?? null,
+      managedWorkspaceIds:
+        organization.workspaceIds.length > 0
+          ? organization.workspaceIds
+          : user.managedWorkspaceIds ?? [],
+      workspaceMemberId: organization.workspaceMemberId,
+      teamId: organization.teamId,
+      teamName: organization.teamName,
+      departmentName: organization.departmentName,
+      teamAssignments: organization.teamAssignments,
+      isTeamLeader: organization.isTeamLeader,
+      ledTeamIds: organization.ledTeamIds,
+      ledTeamNames: organization.ledTeamNames,
     }
   } catch {
     return user

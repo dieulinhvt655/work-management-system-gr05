@@ -1,19 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
-import { createProject, fetchProjects } from '../../api/projectsApi'
-import { fetchTeams } from '../../api/teamsApi'
+import { fetchProjects, fetchProjectsForCurrentTeam } from '../../api/projectsApi'
 import LoadingScreen from '../../components/common/LoadingScreen'
-import PermissionGate from '../../components/common/PermissionGate'
-import Toast from '../../components/common/Toast'
 import { PROJECT_STATUS_LABELS } from '../../constants/projects'
 import { PERMISSIONS } from '../../constants/permissions'
 import { useAuth } from '../../context/AuthContext'
 import { usePermission } from '../../hooks/usePermission'
+import { isTeamLeaderUser } from '../../utils/userRoleUtils'
 import PermissionRoute from '../../routes/PermissionRoute'
-import { getErrorMessage } from '../../utils/getErrorMessage'
-import ProjectFormModal from './components/ProjectFormModal'
+import { getManagedTeamId } from '../../utils/teamLeaderScope'
 
 function StatusBadge({ status }) {
   return (
@@ -26,26 +23,34 @@ function StatusBadge({ status }) {
 export default function ProjectsListPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const { can } = usePermission()
-  const queryClient = useQueryClient()
   const workspaceId = user?.workspaceId
-  const [showCreate, setShowCreate] = useState(false)
-  const [formError, setFormError] = useState('')
-  const [toastMessage, setToastMessage] = useState('')
+  const managedTeamId = getManagedTeamId(user)
+  const canCreateProject =
+    can(PERMISSIONS.PROJECT_CREATE) || isTeamLeaderUser(user)
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects', workspaceId, user?.id],
-    queryFn: () => fetchProjects(workspaceId, {}, user),
+    queryFn: () =>
+      managedTeamId
+        ? fetchProjectsForCurrentTeam(workspaceId, managedTeamId, {}, user)
+        : fetchProjects(workspaceId, {}, user),
     enabled: isAuthenticated && !authLoading,
-  })
-
-  const { data: teams = [], isLoading: teamsLoading } = useQuery({
-    queryKey: ['teams', workspaceId],
-    queryFn: () => fetchTeams(workspaceId),
-    enabled: isAuthenticated && !authLoading && can(PERMISSIONS.PROJECT_CREATE),
   })
 
   const visibleProjects = useMemo(() => {
     if (user?.isSystemAdmin) return projects
+
+    if (isTeamLeaderUser(user)) {
+      const ledTeamIds = new Set(
+        (user.ledTeamIds ?? []).map(String).filter(Boolean),
+      )
+
+      if (ledTeamIds.size === 0 && user.teamId) {
+        ledTeamIds.add(String(user.teamId))
+      }
+
+      return projects.filter((project) => ledTeamIds.has(String(project.teamId)))
+    }
 
     return projects.filter(
       (project) =>
@@ -53,87 +58,55 @@ export default function ProjectsListPage() {
         project.isCurrentUserProjectManager ||
         project.currentMember,
     )
-  }, [projects, user?.isSystemAdmin])
+  }, [projects, user])
 
-  const teamOptions = useMemo(() => {
-    if (user?.isSystemAdmin) return teams
-    return teams.filter((team) =>
-      (team.members ?? []).some(
-        (member) =>
-          member.isLeader && String(member.userId) === String(user?.id),
-      ),
-    )
-  }, [teams, user])
-
-  const createMutation = useMutation({
-    mutationFn: (values) => {
-      const team = teamOptions.find(
-        (entry) => String(entry.id) === String(values.teamId),
-      )
-      return createProject(team?.workspaceId ?? workspaceId, values.teamId, values)
-    },
-    onSuccess: () => {
-      setShowCreate(false)
-      setFormError('')
-      setToastMessage('Project đã được tạo.')
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
-    },
-    onError: (error) => {
-      setFormError(getErrorMessage(error, 'Không thể tạo project.'))
-    },
-  })
-
-  const handleCreate = (values) => {
-    setFormError('')
-    createMutation.mutate(values)
-  }
-
-  if (authLoading || isLoading || teamsLoading) {
+  if (authLoading || isLoading) {
     return <LoadingScreen />
   }
 
   return (
     <PermissionRoute permission={PERMISSIONS.PROJECT_READ}>
-      {toastMessage && (
-        <Toast message={toastMessage} onClose={() => setToastMessage('')} />
-      )}
-
       <div className="page page--wide">
-        <PermissionGate permission={PERMISSIONS.PROJECT_CREATE}>
+        {canCreateProject ? (
           <header className="page__header page__header--row project-page-header">
             <div>
-              <h1 className="page__title">Projects</h1>
+              <h1 className="page__title">Danh sách dự án</h1>
               <p className="page__subtitle">
-                Theo dõi project theo vai trò của bạn trong team và dự án.
+                {isTeamLeaderUser(user)
+                  ? 'Tất cả dự án trong phòng ban bạn quản lý.'
+                  : 'Theo dõi project theo vai trò của bạn trong team và dự án.'}
               </p>
             </div>
-            <button
-              type="button"
+            <Link
+              to="/projects/create"
               className="btn btn--primary page-header-btn"
-              onClick={() => {
-                setFormError('')
-                setShowCreate(true)
-              }}
-              disabled={teamOptions.length === 0}
             >
               <Plus size={16} aria-hidden="true" />
-              Tạo dự án
-            </button>
+              Tạo dự án mới
+            </Link>
           </header>
-        </PermissionGate>
+        ) : (
+          <header className="page__header">
+            <h1 className="page__title">Danh sách dự án</h1>
+            <p className="page__subtitle">
+              Tất cả dự án trong phòng ban bạn quản lý.
+            </p>
+          </header>
+        )}
 
         {visibleProjects.length === 0 ? (
           <div className="project-list-empty">
             <p className="project-list-empty__title">Chưa có dự án</p>
             <p className="project-list-empty__text">
-              Chưa có project nào thuộc team bạn quản lý hoặc project bạn tham
-              gia.
+              {isTeamLeaderUser(user)
+                ? 'Chưa có dự án nào trong phòng ban của bạn.'
+                : 'Chưa có project nào thuộc team bạn quản lý hoặc project bạn tham gia.'}
             </p>
-            <PermissionGate permission={PERMISSIONS.TEAM_READ}>
-              <Link to="/teams" className="btn btn--ghost">
-                Mở Teams
+            {canCreateProject && (
+              <Link to="/projects/create" className="btn btn--ghost">
+                Tạo dự án mới
               </Link>
-            </PermissionGate>
+            )}
           </div>
         ) : (
           <div className="project-list">
@@ -169,23 +142,6 @@ export default function ProjectsListPage() {
           </div>
         )}
 
-        {showCreate && (
-          <ProjectFormModal
-            title="Tạo project mới"
-            description="Team Leader tạo project trong team mình quản lý."
-            teams={teamOptions}
-            initialTeamId={teamOptions[0]?.id ?? ''}
-            onClose={() => {
-              if (!createMutation.isPending) {
-                setShowCreate(false)
-                setFormError('')
-              }
-            }}
-            onSave={handleCreate}
-            isSaving={createMutation.isPending}
-            saveError={formError}
-          />
-        )}
       </div>
     </PermissionRoute>
   )

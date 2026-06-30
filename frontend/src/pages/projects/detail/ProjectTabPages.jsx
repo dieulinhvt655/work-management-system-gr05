@@ -1,6 +1,19 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileUp, Plus, UserCheck } from 'lucide-react'
+import {
+  CalendarDays,
+  CheckCircle2,
+  FileText,
+  FileUp,
+  FolderKanban,
+  ListChecks,
+  Plus,
+  Target,
+  TrendingUp,
+  UserCheck,
+  Users,
+} from 'lucide-react'
 import {
   addProjectMember,
   createBacklogItem,
@@ -23,7 +36,7 @@ import Modal from '../../../components/ui/Modal'
 import SelectField from '../../../components/ui/SelectField'
 import TextField from '../../../components/ui/TextField'
 import { PERMISSIONS } from '../../../constants/permissions'
-import { PROJECT_STATUS_LABELS } from '../../../constants/projects'
+import { PROJECT_STATUS, PROJECT_STATUS_LABELS } from '../../../constants/projects'
 import { usePermission } from '../../../hooks/usePermission'
 import { useProject } from '../../../hooks/useProject'
 import PermissionRoute from '../../../routes/PermissionRoute'
@@ -39,6 +52,21 @@ function formatBytes(value) {
   if (size < 1024) return `${size} B`
   if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`
   return `${(size / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function formatActivityAction(log) {
+  if (!log?.action) return 'đã cập nhật dự án'
+  return log.action
+    .toLowerCase()
+    .replaceAll('_', ' ')
+}
+
+function splitDetailText(value) {
+  if (!value || value === '—') return []
+  return value
+    .split(/\n|;|,/)
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function EmptyState({ children }) {
@@ -334,61 +362,177 @@ export function ProjectOverviewPage() {
     queryFn: () => fetchProjectDashboard(project),
     enabled: Boolean(project),
   })
+  const { data: activityLogs = [] } = useQuery({
+    queryKey: ['projects', project?.id, 'activity-logs', 'overview'],
+    queryFn: () => fetchProjectActivityLogs(project, { page: 0, size: 4 }),
+    enabled: Boolean(project),
+  })
+
+  const objectiveItems = splitDetailText(project?.objective)
+  const scopeItems = splitDetailText(project?.scope)
+  const projectManager = project?.members?.find(
+    (member) => String(member.id) === String(project?.managerMemberId),
+  )
+  const recentMembers = project?.members?.slice(0, 3) ?? []
+  const workflowPercent = dashboard?.completionPercent ?? 0
 
   return (
     <PermissionRoute permission={PERMISSIONS.PROJECT_READ}>
       <ProjectTabShell title="Tổng quan">
-        <div className="project-overview-grid">
-          <div className="project-stat-card">
-            <p className="project-stat-card__label">Trạng thái</p>
-            <p className="project-stat-card__value project-stat-card__text">
-              {PROJECT_STATUS_LABELS[project?.status] ?? project?.status ?? '—'}
-            </p>
-          </div>
-          <div className="project-stat-card">
-            <p className="project-stat-card__label">Thành viên</p>
-            <p className="project-stat-card__value">{project?.memberCount ?? 0}</p>
-          </div>
-          <div className="project-stat-card">
-            <p className="project-stat-card__label">Hoàn thành task</p>
-            <p className="project-stat-card__value">
-              {dashboard?.completionPercent ?? 0}%
-            </p>
-          </div>
-          <div className="project-stat-card">
-            <p className="project-stat-card__label">Product Backlog</p>
-            <p className="project-stat-card__value">
-              {dashboard?.totalPbis ?? 0}
-            </p>
-          </div>
-          <div className="project-stat-card">
-            <p className="project-stat-card__label">Ready PBI</p>
-            <p className="project-stat-card__value">
-              {dashboard?.readyPbis ?? 0}
-            </p>
-          </div>
-          <div className="project-stat-card">
-            <p className="project-stat-card__label">Active Sprint</p>
-            <p className="project-stat-card__value project-stat-card__text">
-              {dashboard?.activeSprint?.name ?? '—'}
-            </p>
-          </div>
-          <div className="project-stat-card project-stat-card--wide">
-            <p className="project-stat-card__label">Mô tả</p>
-            <p className="project-stat-card__text">{project?.description}</p>
-          </div>
-          {project?.objective && (
-            <div className="project-stat-card project-stat-card--wide">
-              <p className="project-stat-card__label">Mục tiêu</p>
-              <p className="project-stat-card__text">{project.objective}</p>
+        <div className="project-detail-stats">
+          <article className="project-detail-stat">
+            <span className="project-detail-stat__icon">
+              <Users size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <p>Tổng thành viên</p>
+              <strong>{project?.memberCount ?? 0}</strong>
             </div>
-          )}
-          {project?.scope && (
-            <div className="project-stat-card project-stat-card--wide">
-              <p className="project-stat-card__label">Phạm vi</p>
-              <p className="project-stat-card__text">{project.scope}</p>
+          </article>
+          <article className="project-detail-stat">
+            <span className="project-detail-stat__icon">
+              <CheckCircle2 size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <p>Số task</p>
+              <strong>{dashboard?.totalTasks ?? 0}</strong>
             </div>
-          )}
+          </article>
+          <article className="project-detail-stat">
+            <span className="project-detail-stat__icon">
+              <TrendingUp size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <p>Workflow Status</p>
+              <strong>{workflowPercent}%</strong>
+            </div>
+          </article>
+          <article className="project-detail-stat">
+            <span className="project-detail-stat__icon project-detail-stat__icon--warm">
+              <FolderKanban size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <p>Backlog items</p>
+              <strong>{dashboard?.totalPbis ?? 0}</strong>
+            </div>
+          </article>
+        </div>
+
+        <div className="project-detail-grid">
+          <section className="project-detail-card project-detail-card--main">
+            <div className="project-detail-field-grid">
+              <div>
+                <span>Tên dự án</span>
+                <strong>{project?.name}</strong>
+              </div>
+              <div>
+                <span>Mã dự án</span>
+                <strong>{project?.code || '—'}</strong>
+              </div>
+            </div>
+
+            <div className="project-detail-block">
+              <span>Mô tả dự án</span>
+              <p>{project?.description || '—'}</p>
+            </div>
+
+            <div className="project-detail-two-cols">
+              <div className="project-detail-list">
+                <h3>
+                  <Target size={17} aria-hidden="true" />
+                  Mục tiêu chính
+                </h3>
+                {objectiveItems.length > 0 ? (
+                  objectiveItems.map((item) => <p key={item}>{item}</p>)
+                ) : (
+                  <p>Chưa cập nhật mục tiêu.</p>
+                )}
+              </div>
+
+              <div className="project-detail-list">
+                <h3>
+                  <ListChecks size={17} aria-hidden="true" />
+                  Phạm vi dự án
+                </h3>
+                {scopeItems.length > 0 ? (
+                  scopeItems.map((item) => <p key={item}>{item}</p>)
+                ) : (
+                  <p>Chưa cập nhật phạm vi.</p>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <aside className="project-detail-side">
+            <section className="project-detail-card">
+              <h3>Thông tin bổ sung</h3>
+              <div className="project-detail-info-list">
+                <span>Trạng thái</span>
+                <strong>{PROJECT_STATUS_LABELS[project?.status] ?? project?.status ?? '—'}</strong>
+                <span>Ngày bắt đầu</span>
+                <strong>{formatDate(project?.startDate)}</strong>
+                <span>Ngày dự kiến kết thúc</span>
+                <strong>{formatDate(project?.endDate)}</strong>
+              </div>
+              <div className="project-detail-manager">
+                <UserCheck size={18} aria-hidden="true" />
+                <div>
+                  <span>Project Manager</span>
+                  <strong>{project?.managerName ?? 'Chưa gán'}</strong>
+                  {projectManager?.email && <small>{projectManager.email}</small>}
+                </div>
+              </div>
+            </section>
+
+            <section className="project-detail-card">
+              <div className="project-detail-card__header">
+                <h3>Nhóm tham gia</h3>
+                <Link to={`/projects/${project?.id}/members`}>Chi tiết</Link>
+              </div>
+              <div className="project-detail-member-list">
+                {recentMembers.length > 0 ? (
+                  recentMembers.map((member) => (
+                    <div key={member.id}>
+                      <span>{member.fullName}</span>
+                      <small>{member.roleName}</small>
+                    </div>
+                  ))
+                ) : (
+                  <p>Chưa có thành viên dự án.</p>
+                )}
+              </div>
+            </section>
+
+            <section className="project-detail-card">
+              <h3>Hoạt động gần đây</h3>
+              <div className="project-detail-activity">
+                {activityLogs.length > 0 ? (
+                  activityLogs.map((log) => (
+                    <article key={log.id}>
+                      <CalendarDays size={14} aria-hidden="true" />
+                      <div>
+                        <strong>{log.actorName}</strong>
+                        <p>{formatActivityAction(log)}</p>
+                        <small>{formatDate(log.createdAt)}</small>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <p>Chưa có hoạt động nào.</p>
+                )}
+              </div>
+            </section>
+
+            {project?.status === PROJECT_STATUS.DRAFT && (
+              <Link
+                to={`/projects/${project.id}/members`}
+                className="project-detail-card project-detail-card--link"
+              >
+                <FileText size={18} aria-hidden="true" />
+                Hoàn thiện phân công trước khi kích hoạt
+              </Link>
+            )}
+          </aside>
         </div>
       </ProjectTabShell>
     </PermissionRoute>

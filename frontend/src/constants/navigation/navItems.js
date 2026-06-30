@@ -15,7 +15,12 @@ import {
   WORKSPACE_OWNER_NAV_ITEMS,
   WORKSPACE_OWNER_ROUTE_PERMISSIONS,
 } from './workspaceOwnerNavItems'
-import { isWorkspaceOwnerUser } from '../../utils/userRoleUtils'
+import {
+  TEAM_LEADER_DEFAULT_ROUTE_PRIORITY,
+  TEAM_LEADER_NAV_ITEMS,
+  TEAM_LEADER_ROUTE_PERMISSIONS,
+} from './teamLeaderNavItems'
+import { isTeamLeaderUser, isWorkspaceOwnerUser } from '../../utils/userRoleUtils'
 
 /** Pick sidebar items by session role scope. */
 export function getNavItemsForUser(user) {
@@ -25,6 +30,10 @@ export function getNavItemsForUser(user) {
 
   if (isWorkspaceOwnerUser(user)) {
     return WORKSPACE_OWNER_NAV_ITEMS
+  }
+
+  if (isTeamLeaderUser(user)) {
+    return TEAM_LEADER_NAV_ITEMS
   }
 
   return OPERATIONAL_NAV_ITEMS
@@ -42,6 +51,13 @@ export function getRoutePermissionsForUser(user) {
     }
   }
 
+  if (isTeamLeaderUser(user)) {
+    return {
+      ...TEAM_LEADER_ROUTE_PERMISSIONS,
+      '/profile': PERMISSIONS.PROFILE_READ,
+    }
+  }
+
   return ROUTE_PERMISSIONS_BASE
 }
 
@@ -52,6 +68,10 @@ export function getDefaultRoutePriorityForUser(user) {
 
   if (isWorkspaceOwnerUser(user)) {
     return WORKSPACE_OWNER_DEFAULT_ROUTE_PRIORITY
+  }
+
+  if (isTeamLeaderUser(user)) {
+    return TEAM_LEADER_DEFAULT_ROUTE_PRIORITY
   }
 
   return DEFAULT_ROUTE_PRIORITY_BASE.filter((path) => !path.startsWith('/admin'))
@@ -144,6 +164,7 @@ export const NAV_ITEMS = [...ADMIN_NAV_ITEMS, ...OPERATIONAL_NAV_ITEMS]
 export const ROUTE_PERMISSIONS = {
   ...ADMIN_ROUTE_PERMISSIONS,
   ...WORKSPACE_OWNER_ROUTE_PERMISSIONS,
+  '/dashboard/team': PERMISSIONS.DASHBOARD_TEAM_READ,
   '/dashboard/workspace': PERMISSIONS.DASHBOARD_WORKSPACE_READ,
   '/dashboard/my': PERMISSIONS.DASHBOARD_MY_READ,
   '/workspace/info': PERMISSIONS.WORKSPACE_READ,

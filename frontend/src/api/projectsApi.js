@@ -15,6 +15,7 @@ import {
 import api from './axios'
 import { fetchTeams } from './teamsApi'
 import { fetchWorkspaces } from './workspacesApi'
+import { getManagedTeamId, getManagedTeamName } from '../utils/teamLeaderScope'
 
 async function resolveWorkspaceIds(workspaceId) {
   if (workspaceId) {
@@ -103,6 +104,31 @@ async function fetchProjectsForTeam(workspaceId, team, params = {}, currentUser)
   )
 }
 
+export async function fetchProjectsForCurrentTeam(
+  workspaceId,
+  teamId,
+  params = {},
+  currentUser = null,
+) {
+  if (!workspaceId || !teamId) return []
+
+  return fetchProjectsForTeam(
+    workspaceId,
+    {
+      id: teamId,
+      name: getManagedTeamName(currentUser),
+      members: [
+        {
+          isLeader: true,
+          userId: currentUser?.id,
+        },
+      ],
+    },
+    params,
+    currentUser,
+  )
+}
+
 /** Lấy project thật từ backend, đi qua từng team trong workspace được phép. */
 export async function fetchProjects(workspaceId, params = {}, currentUser = null) {
   const workspaceIds = await resolveWorkspaceIds(workspaceId)
@@ -120,7 +146,10 @@ export async function fetchProjects(workspaceId, params = {}, currentUser = null
 }
 
 export async function fetchProjectById(projectId, workspaceId, currentUser = null) {
-  const projects = await fetchProjects(workspaceId, {}, currentUser)
+  const managedTeamId = getManagedTeamId(currentUser)
+  const projects = managedTeamId
+    ? await fetchProjectsForCurrentTeam(workspaceId, managedTeamId, {}, currentUser)
+    : await fetchProjects(workspaceId, {}, currentUser)
   const project = projects.find((entry) => entry.id === String(projectId))
 
   if (!project) {
@@ -145,35 +174,70 @@ export async function fetchProjectById(projectId, workspaceId, currentUser = nul
 }
 
 export async function createProject(workspaceId, teamId, payload) {
-  const { data } = await api.post(
-    `/workspaces/${workspaceId}/teams/${teamId}/projects`,
-    {
-      code: payload.code?.trim(),
-      name: payload.name?.trim(),
-      description: payload.description?.trim() || undefined,
-      objective: payload.objective?.trim() || undefined,
-      scope: payload.scope?.trim() || undefined,
-      startDate: payload.startDate || undefined,
-      endDate: payload.endDate || undefined,
-      projectManagerMemberId: Number(payload.projectManagerMemberId),
-    },
-  )
+  const projectManagerMemberId = Number(payload.projectManagerMemberId)
+  const body = {
+    name: payload.name?.trim(),
+    objective: payload.objective?.trim(),
+    scope: payload.scope?.trim(),
+    description: payload.description?.trim() || undefined,
+    startDate: payload.startDate || undefined,
+    endDate: payload.endDate || undefined,
+  }
+
+  if (Number.isFinite(projectManagerMemberId)) {
+    body.projectManagerMemberId = projectManagerMemberId
+  }
+
+  let data
+
+  try {
+    const response = await api.post(
+      `/workspaces/${workspaceId}/teams/${teamId}/projects`,
+      body,
+    )
+    data = response.data
+  } catch (error) {
+    const isAuthForbidden =
+      error?.response?.status === 403 &&
+      error?.response?.data?.errorCode === 'AUTH_004'
+
+    if (!isAuthForbidden) {
+      throw error
+    }
+
+    try {
+      const response = await api.post('/projects', {
+        ...body,
+        workspaceId: Number(workspaceId),
+        teamId: Number(teamId),
+      })
+      data = response.data
+    } catch {
+      throw error
+    }
+  }
 
   return mapProjectResponse(unwrapApiResponse({ data }))
 }
 
 export async function updateProject(project, payload) {
+  const projectManagerMemberId = Number(payload.projectManagerMemberId)
+  const body = {
+    name: payload.name?.trim(),
+    description: payload.description?.trim() || undefined,
+    objective: payload.objective?.trim() || undefined,
+    scope: payload.scope?.trim() || undefined,
+    startDate: payload.startDate || undefined,
+    endDate: payload.endDate || undefined,
+  }
+
+  if (Number.isFinite(projectManagerMemberId)) {
+    body.projectManagerMemberId = projectManagerMemberId
+  }
+
   const { data } = await api.put(
     `/workspaces/${project.workspaceId}/teams/${project.teamId}/projects/${project.id}`,
-    {
-      name: payload.name?.trim(),
-      description: payload.description?.trim() || undefined,
-      objective: payload.objective?.trim() || undefined,
-      scope: payload.scope?.trim() || undefined,
-      startDate: payload.startDate || undefined,
-      endDate: payload.endDate || undefined,
-      projectManagerMemberId: Number(payload.projectManagerMemberId),
-    },
+    body,
   )
 
   return mapProjectResponse(unwrapApiResponse({ data }), {

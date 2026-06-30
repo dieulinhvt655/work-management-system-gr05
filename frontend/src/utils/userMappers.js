@@ -75,15 +75,21 @@ export function mapUserResponse(apiUser) {
 }
 
 /** Map backend UserResponse → frontend profile model. */
-export function mapUserToProfile(apiUser) {
+export function mapUserToProfile(apiUser, organization = null) {
   const user = mapUserResponse(apiUser)
+  const teamName = organization?.teamName ?? 'Chưa phân phòng ban'
 
   return {
     ...user,
+    accountStatus: user.status,
+    roleLabel: user.roleName ?? user.role ?? '—',
     bio: apiUser.bio ?? apiUser.description ?? '',
-    workspaceName: '—',
-    departmentName: '—',
-    teamName: '—',
+    workspaceId: organization?.workspaceId ?? user.workspaceId,
+    workspaceName: organization?.workspaceName ?? '—',
+    departmentName: organization?.departmentName ?? teamName,
+    teamId: organization?.teamId ?? null,
+    teamName,
+    workspaceMemberId: organization?.workspaceMemberId ?? null,
     position: '—',
   }
 }

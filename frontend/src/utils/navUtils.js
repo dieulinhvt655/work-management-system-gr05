@@ -1,6 +1,7 @@
 import {
   DEFAULT_ROUTE_PRIORITY,
   getDefaultRoutePriorityForUser,
+  getRoutePermissionsForUser,
   ROUTE_PERMISSIONS,
 } from '../constants/navigation/navItems'
 
@@ -56,7 +57,8 @@ export function getDefaultRoute(permissions = [], user = null) {
     : DEFAULT_ROUTE_PRIORITY
 
   for (const path of priorities) {
-    const required = ROUTE_PERMISSIONS[path]
+    const routePermissions = user ? getRoutePermissionsForUser(user) : ROUTE_PERMISSIONS
+    const required = routePermissions[path] ?? ROUTE_PERMISSIONS[path]
     if (!required || permissionSet.has(required)) {
       return path
     }

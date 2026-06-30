@@ -17,6 +17,14 @@ export function isWorkspaceOwnerUser(user) {
   )
 }
 
+export function isTeamLeaderUser(user) {
+  if (!user || user.isSystemAdmin || isWorkspaceOwnerUser(user)) return false
+  if (user.isTeamLeader === true) return true
+
+  const roleName = getUserRoleName(user).toLowerCase()
+  return roleName === 'team leader'
+}
+
 export function isSystemAdminUser(user) {
   if (!user) return false
   if (user.isSystemAdmin === true) return true
