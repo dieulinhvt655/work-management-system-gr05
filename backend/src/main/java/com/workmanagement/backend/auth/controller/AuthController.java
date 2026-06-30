@@ -41,19 +41,19 @@ public class AuthController {
         authService.logout(request);
         return ApiResponse.success(null, "Đăng xuất thành công");
     }
-//
-//    /** UC-1.3 — Yêu cầu khôi phục mật khẩu */
-//    @PostMapping("/forgot-password")
-//    public ApiResponse<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-//        authService.forgotPassword(request);
-//        return ApiResponse.success(null, "Nếu email tồn tại, hướng dẫn khôi phục đã được gửi");
-//    }
-//
-//    /** UC-1.3 — Đặt lại mật khẩu bằng reset token */
-//    @PostMapping("/reset-password")
-//    public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-//        authService.resetPassword(request);
-//        return ApiResponse.success(null, "Đặt lại mật khẩu thành công");
-//    }
+
+    /** UC-1.3 — Yêu cầu khôi phục mật khẩu */
+    @PostMapping("/forgot-password")
+    public ApiResponse<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ApiResponse.success(null, "Nếu email tồn tại, hướng dẫn khôi phục đã được gửi");
+    }
+
+    /** UC-1.3 — Đặt lại mật khẩu bằng reset token */
+    @PostMapping("/reset-password")
+    public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ApiResponse.success(null, "Đặt lại mật khẩu thành công");
+    }
 
 }

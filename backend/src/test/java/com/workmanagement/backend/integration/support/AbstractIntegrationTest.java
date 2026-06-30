@@ -191,7 +191,6 @@ public abstract class AbstractIntegrationTest {
                 tokens.accessToken(), workspaceId, teamId, workspaceOwner.getEmail());
 
         CreateProjectRequest projectRequest = new CreateProjectRequest();
-        projectRequest.setCode("PRJ-" + suffix);
         projectRequest.setName("Project " + suffix);
         projectRequest.setDescription("Integration test project");
         projectRequest.setStartDate(LocalDate.now());

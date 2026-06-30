@@ -193,7 +193,7 @@ CREATE TABLE team_members (
 CREATE TABLE projects (
                                         id BIGINT AUTO_INCREMENT PRIMARY KEY,
                                         team_id BIGINT NOT NULL,
-                                        project_manager_member_id BIGINT NOT NULL,
+                                        project_manager_member_id BIGINT NULL,
                                         code VARCHAR(50) NOT NULL UNIQUE,
                                         name VARCHAR(255) NOT NULL,
                                         description TEXT,
@@ -213,7 +213,7 @@ CREATE TABLE projects (
 
                                         CONSTRAINT fk_projects_project_manager_member
                                             FOREIGN KEY (project_manager_member_id) REFERENCES team_members(id)
-                                                ON UPDATE CASCADE ON DELETE RESTRICT
+                                                ON UPDATE CASCADE ON DELETE SET NULL
 );
 
 CREATE TABLE project_members (

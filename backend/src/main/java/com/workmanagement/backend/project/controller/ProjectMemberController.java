@@ -8,6 +8,7 @@ import com.workmanagement.backend.project.service.ProjectMemberService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -61,6 +62,18 @@ public class ProjectMemberController {
                 projectMemberService.update(workspaceId, teamId, projectId, memberId, request),
                 "Cập nhật thành viên dự án thành công"
         );
+    }
+
+    /** UC-2.8 — Gỡ thành viên dự án */
+    @DeleteMapping("/{memberId}")
+    public ApiResponse<Void> remove(
+            @PathVariable Long workspaceId,
+            @PathVariable Long teamId,
+            @PathVariable Long projectId,
+            @PathVariable Long memberId
+    ) {
+        projectMemberService.remove(workspaceId, teamId, projectId, memberId);
+        return ApiResponse.success(null, "Xóa thành viên dự án thành công");
     }
 
 }

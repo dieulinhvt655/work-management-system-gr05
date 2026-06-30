@@ -79,4 +79,32 @@ class TeamMemberControllerTest {
         verify(teamMemberService).assignLeader(10L, 20L, 1L);
     }
 
+    @Test
+    void revokeLeader_shouldReturnSuccess() throws Exception {
+        TeamMemberResponse response = TeamMemberResponse.builder().id(1L).build();
+        when(teamMemberService.revokeLeader(10L, 20L, 1L)).thenReturn(response);
+
+        mockMvc.perform(patch("/api/v1/workspaces/10/teams/20/members/1/revoke-leader"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(1));
+
+        verify(teamMemberService).revokeLeader(10L, 20L, 1L);
+    }
+
+    @Test
+    void transfer_shouldReturnSuccess() throws Exception {
+        TeamMemberResponse response = TeamMemberResponse.builder().id(7L).build();
+        when(teamMemberService.transfer(eq(10L), eq(20L), eq(7L), any())).thenReturn(response);
+
+        mockMvc.perform(patch("/api/v1/workspaces/10/teams/20/members/7/transfer")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"targetTeamId":30}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(7));
+
+        verify(teamMemberService).transfer(eq(10L), eq(20L), eq(7L), any());
+    }
+
 }

@@ -44,6 +44,7 @@ public final class ErrorCode {
     public static final String TEAM_ACCESS_DENIED = "TEAM_002"; /** Không có quyền truy cập nhóm. */
     public static final String TEAM_MEMBER_NOT_FOUND = "TEAM_003"; /** Không tìm thấy thành viên nhóm. */
     public static final String TEAM_MEMBER_ALREADY_EXISTS = "TEAM_004"; /** Thành viên đã có trong nhóm. */
+    public static final String TEAM_NAME_ALREADY_EXISTS = "TEAM_005"; /** Tên nhóm đã tồn tại trong workspace. */
 
     // --- Project ---
     public static final String PROJECT_NOT_FOUND = "PROJ_001"; /** Không tìm thấy dự án. */

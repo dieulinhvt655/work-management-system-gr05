@@ -52,12 +52,13 @@ class ProjectControllerTest {
         when(projectService.create(eq(10L), eq(20L), any())).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/workspaces/10/teams/20/projects")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
                                 {
-                                  "code":"PRJ-001",
                                   "name":"Alpha",
-                                  "projectManagerMemberId":7
+                                  "objective":"Objective",
+                                  "scope":"Scope",
+                                  "startDate":"2026-01-01"
                                 }
                                 """))
                 .andExpect(status().isOk())

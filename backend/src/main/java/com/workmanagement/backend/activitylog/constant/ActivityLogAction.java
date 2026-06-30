@@ -16,7 +16,9 @@ public final class ActivityLogAction {
     public static final String TEAM_DISBANDED = "TEAM_DISBANDED";
     public static final String TEAM_MEMBER_ADDED = "TEAM_MEMBER_ADDED";
     public static final String TEAM_MEMBER_UPDATED = "TEAM_MEMBER_UPDATED";
+    public static final String TEAM_MEMBER_TRANSFERRED = "TEAM_MEMBER_TRANSFERRED";
     public static final String TEAM_LEADER_ASSIGNED = "TEAM_LEADER_ASSIGNED";
+    public static final String TEAM_LEADER_REVOKED = "TEAM_LEADER_REVOKED";
     public static final String PROJECT_CREATED = "PROJECT_CREATED";
     public static final String PROJECT_UPDATED = "PROJECT_UPDATED";
     public static final String PROJECT_ACTIVATED = "PROJECT_ACTIVATED";
@@ -24,6 +26,7 @@ public final class ActivityLogAction {
     public static final String PROJECT_ARCHIVED = "PROJECT_ARCHIVED";
     public static final String PROJECT_MEMBER_ADDED = "PROJECT_MEMBER_ADDED";
     public static final String PROJECT_MEMBER_UPDATED = "PROJECT_MEMBER_UPDATED";
+    public static final String PROJECT_MEMBER_REMOVED = "PROJECT_MEMBER_REMOVED";
     public static final String ATTACHMENT_UPLOADED = "ATTACHMENT_UPLOADED";
     public static final String ATTACHMENT_UPDATED = "ATTACHMENT_UPDATED";
     public static final String ATTACHMENT_DELETED = "ATTACHMENT_DELETED";

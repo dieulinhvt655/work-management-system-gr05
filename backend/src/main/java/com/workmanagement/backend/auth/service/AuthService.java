@@ -116,6 +116,9 @@ public class AuthService {
     /** UC-1.3 — Gửi email khôi phục mật khẩu nếu email tồn tại */
     @Transactional(readOnly = true)
     public void forgotPassword(ForgotPasswordRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Dữ liệu khôi phục mật khẩu không được để trống");
+        }
         userRepository.findByEmail(request.getEmail()).ifPresent(user -> {
             String resetToken = jwtTokenProvider.generatePasswordResetToken(user.getEmail());
             passwordResetEmailService.sendResetLink(user.getEmail(), resetToken);
@@ -125,6 +128,9 @@ public class AuthService {
     /** UC-1.3 — Đặt lại mật khẩu bằng reset token */
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Dữ liệu đặt lại mật khẩu không được để trống");
+        }
         jwtTokenProvider.validateToken(request.getToken());
 
         if (!jwtTokenProvider.isPasswordResetToken(request.getToken())) {

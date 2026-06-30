@@ -5,9 +5,11 @@ import com.workmanagement.backend.activitylog.service.ActivityLogService;
 import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.enums.CommonStatus;
 import com.workmanagement.backend.common.enums.MemberStatus;
+import com.workmanagement.backend.common.enums.ProjectStatus;
 import com.workmanagement.backend.common.exception.BusinessException;
 import com.workmanagement.backend.common.response.PageResponse;
 import com.workmanagement.backend.common.util.SecurityUtils;
+import com.workmanagement.backend.project.repository.ProjectRepository;
 import com.workmanagement.backend.security.repository.RoleRepository;
 import com.workmanagement.backend.team.dto.request.CreateTeamRequest;
 import com.workmanagement.backend.team.dto.request.UpdateTeamRequest;
@@ -38,6 +40,12 @@ import java.util.List;
 public class TeamService {
 
     private static final String TEAM_LEADER_ROLE = "Team Leader";
+    private static final int MAX_NAME_LENGTH = 255;
+    private static final int MAX_DESCRIPTION_LENGTH = 2000;
+
+    /** Trạng thái dự án được coi là "chưa hoàn tất"; COMPLETED/ARCHIVED không chặn giải thể nhóm. */
+    private static final List<ProjectStatus> UNFINISHED_PROJECT_STATUSES =
+            List.of(ProjectStatus.DRAFT, ProjectStatus.ACTIVE);
 
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
@@ -45,18 +53,41 @@ public class TeamService {
     private final WorkspaceService workspaceService;
     private final RoleRepository roleRepository;
     private final ActivityLogService activityLogService;
+    private final ProjectRepository projectRepository;
 
     /** UC-2.3 — Tạo nhóm làm việc trong workspace */
     @Transactional
     @PreAuthorize("hasAuthority('team:create')")
     public TeamResponse create(Long workspaceId, CreateTeamRequest request) {
+        if (workspaceId == null || workspaceId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace id không hợp lệ");
+        }
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Request không được để trống");
+        }
+        if (!StringUtils.hasText(request.getName())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tên nhóm không được để trống");
+        }
+
+        String teamName = request.getName().trim();
+        if (teamName.length() > MAX_NAME_LENGTH) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tên nhóm tối đa 255 ký tự");
+        }
+        if (request.getDescription() != null && request.getDescription().length() > MAX_DESCRIPTION_LENGTH) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mô tả tối đa 2000 ký tự");
+        }
+
         Workspace workspace = workspaceService.getWorkspace(workspaceId);
         workspaceService.verifyCanManage(workspace);
         ensureWorkspaceActive(workspace);
 
+        if (teamRepository.existsByWorkspaceIdAndNameIgnoreCase(workspace.getId(), teamName)) {
+            throw new BusinessException(ErrorCode.TEAM_NAME_ALREADY_EXISTS, "Tên nhóm đã tồn tại trong workspace");
+        }
+
         Team team = Team.builder()
                 .workspace(workspace)
-                .name(request.getName().trim())
+                .name(teamName)
                 .description(request.getDescription())
                 .status(CommonStatus.ACTIVE)
                 .build();
@@ -84,6 +115,10 @@ public class TeamService {
             String keyword,
             CommonStatus status
     ) {
+        if (workspaceId == null || workspaceId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace id không hợp lệ");
+        }
+
         Workspace workspace = workspaceService.getWorkspace(workspaceId);
         workspaceService.verifyAccess(workspace);
 
@@ -107,6 +142,13 @@ public class TeamService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('team:read')")
     public TeamResponse findById(Long workspaceId, Long teamId) {
+        if (workspaceId == null || workspaceId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace id không hợp lệ");
+        }
+        if (teamId == null || teamId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Team id không hợp lệ");
+        }
+
         Team team = getTeam(workspaceId, teamId);
         workspaceService.verifyAccess(team.getWorkspace());
         return toResponseWithLeader(team);
@@ -116,16 +158,53 @@ public class TeamService {
     @Transactional
     @PreAuthorize("hasAuthority('team:update')")
     public TeamResponse update(Long workspaceId, Long teamId, UpdateTeamRequest request) {
+        if (workspaceId == null || workspaceId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace id không hợp lệ");
+        }
+        if (teamId == null || teamId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Team id không hợp lệ");
+        }
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Request không được để trống");
+        }
+
         Team team = getTeam(workspaceId, teamId);
         workspaceService.verifyCanManage(team.getWorkspace());
         ensureWorkspaceActive(team.getWorkspace());
         ensureTeamActive(team);
 
-        if (StringUtils.hasText(request.getName())) {
-            team.setName(request.getName().trim());
+        boolean changed = false;
+
+        if (request.getName() != null) {
+            String newName = request.getName().trim();
+            if (newName.isEmpty()) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tên nhóm không được để trống");
+            }
+            if (newName.length() > MAX_NAME_LENGTH) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Tên nhóm tối đa 255 ký tự");
+            }
+            if (!newName.equalsIgnoreCase(team.getName())
+                    && teamRepository.existsByWorkspaceIdAndNameIgnoreCase(workspaceId, newName)) {
+                throw new BusinessException(ErrorCode.TEAM_NAME_ALREADY_EXISTS, "Tên nhóm đã tồn tại trong workspace");
+            }
+            if (!newName.equals(team.getName())) {
+                team.setName(newName);
+                changed = true;
+            }
         }
+
         if (request.getDescription() != null) {
-            team.setDescription(request.getDescription());
+            if (request.getDescription().length() > MAX_DESCRIPTION_LENGTH) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Mô tả tối đa 2000 ký tự");
+            }
+            if (!request.getDescription().equals(team.getDescription())) {
+                team.setDescription(request.getDescription());
+                changed = true;
+            }
+        }
+
+        if (!changed) {
+            return toResponseWithLeader(team);
         }
 
         team = teamRepository.save(team);
@@ -145,11 +224,33 @@ public class TeamService {
     @Transactional
     @PreAuthorize("hasAuthority('team:delete')")
     public TeamResponse disband(Long workspaceId, Long teamId) {
+        if (workspaceId == null || workspaceId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace id không hợp lệ");
+        }
+        if (teamId == null || teamId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Team id không hợp lệ");
+        }
+
         Team team = getTeam(workspaceId, teamId);
         workspaceService.verifyCanManage(team.getWorkspace());
+        ensureWorkspaceActive(team.getWorkspace());
 
         if (team.getStatus() == CommonStatus.INACTIVE) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Nhóm đã được giải thể");
+        }
+
+        if (teamMemberRepository.existsByTeamIdAndStatus(team.getId(), MemberStatus.ACTIVE)) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "Nhóm vẫn còn thành viên đang hoạt động, không thể giải thể"
+            );
+        }
+
+        if (projectRepository.existsByTeamIdAndStatusIn(team.getId(), UNFINISHED_PROJECT_STATUSES)) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "Nhóm vẫn còn dự án chưa hoàn tất, không thể giải thể"
+            );
         }
 
         team.setStatus(CommonStatus.INACTIVE);
@@ -172,6 +273,11 @@ public class TeamService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.TEAM_NOT_FOUND, "Không tìm thấy nhóm làm việc"));
     }
 
+    /**
+     * Chặn thao tác trên nhóm đã giải thể. Dự án chỉ có {@link CommonStatus#ACTIVE}/{@link CommonStatus#INACTIVE},
+     * trong đó INACTIVE chính là trạng thái "đã giải thể" (UC-2.5). Khi có thêm các trạng thái như
+     * DISBANDED/DELETED/ARCHIVED thì bổ sung tại đây.
+     */
     void ensureTeamActive(Team team) {
         if (team.getStatus() == CommonStatus.INACTIVE) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Nhóm đã giải thể, không thể thao tác");

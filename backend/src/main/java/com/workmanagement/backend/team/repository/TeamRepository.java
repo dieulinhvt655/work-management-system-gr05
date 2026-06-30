@@ -12,4 +12,6 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
 
     java.util.List<Team> findByWorkspaceId(Long workspaceId);
 
+    boolean existsByWorkspaceIdAndNameIgnoreCase(Long workspaceId, String name);
+
 }

@@ -1,7 +1,6 @@
 package com.workmanagement.backend.team.dto.request;
 
 import com.workmanagement.backend.common.enums.MemberStatus;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,7 +8,7 @@ import lombok.Setter;
 @Setter
 public class UpdateTeamMemberRequest {
 
-    @NotNull(message = "roleId không được để trống")
+    /** Tùy chọn: chỉ truyền khi muốn đổi vai trò. Cho phép cập nhật riêng {@code status}. */
     private Long roleId;
 
     private MemberStatus status;

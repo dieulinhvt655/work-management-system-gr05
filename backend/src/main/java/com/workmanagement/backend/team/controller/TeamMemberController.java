@@ -2,6 +2,7 @@ package com.workmanagement.backend.team.controller;
 
 import com.workmanagement.backend.common.response.ApiResponse;
 import com.workmanagement.backend.team.dto.request.AddTeamMemberRequest;
+import com.workmanagement.backend.team.dto.request.TransferTeamMemberRequest;
 import com.workmanagement.backend.team.dto.request.UpdateTeamMemberRequest;
 import com.workmanagement.backend.team.dto.response.TeamMemberResponse;
 import com.workmanagement.backend.team.service.TeamMemberService;
@@ -70,6 +71,33 @@ public class TeamMemberController {
         return ApiResponse.success(
                 teamMemberService.assignLeader(workspaceId, teamId, memberId),
                 "Gán Team Leader thành công"
+        );
+    }
+
+    /** UC-2.7 — Thu hồi Team Leader */
+    @PatchMapping("/{memberId}/revoke-leader")
+    public ApiResponse<TeamMemberResponse> revokeLeader(
+            @PathVariable Long workspaceId,
+            @PathVariable Long teamId,
+            @PathVariable Long memberId
+    ) {
+        return ApiResponse.success(
+                teamMemberService.revokeLeader(workspaceId, teamId, memberId),
+                "Thu hồi Team Leader thành công"
+        );
+    }
+
+    /** UC-2.6 — Điều chuyển nhân sự giữa các team */
+    @PatchMapping("/{memberId}/transfer")
+    public ApiResponse<TeamMemberResponse> transfer(
+            @PathVariable Long workspaceId,
+            @PathVariable Long teamId,
+            @PathVariable Long memberId,
+            @Valid @RequestBody TransferTeamMemberRequest request
+    ) {
+        return ApiResponse.success(
+                teamMemberService.transfer(workspaceId, teamId, memberId, request),
+                "Điều chuyển nhân sự thành công"
         );
     }
 

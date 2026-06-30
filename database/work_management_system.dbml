@@ -230,7 +230,7 @@ Table team_members {
 Table projects {
   id bigint [pk, increment]
   team_id bigint [not null]
-  project_manager_member_id bigint [not null]
+  project_manager_member_id bigint
   code varchar(50) [not null, unique]
   name varchar(255) [not null]
   description text

@@ -6,12 +6,14 @@ import com.workmanagement.backend.common.constant.ErrorCode;
 import com.workmanagement.backend.common.enums.CommonStatus;
 import com.workmanagement.backend.common.enums.MemberStatus;
 import com.workmanagement.backend.common.enums.RoleScope;
+import com.workmanagement.backend.common.enums.UserStatus;
 import com.workmanagement.backend.common.exception.BusinessException;
 import com.workmanagement.backend.common.util.SecurityUtils;
 import com.workmanagement.backend.security.entity.Role;
 import com.workmanagement.backend.security.repository.RoleRepository;
 import com.workmanagement.backend.security.service.RoleService;
 import com.workmanagement.backend.team.dto.request.AddTeamMemberRequest;
+import com.workmanagement.backend.team.dto.request.TransferTeamMemberRequest;
 import com.workmanagement.backend.team.dto.request.UpdateTeamMemberRequest;
 import com.workmanagement.backend.team.dto.response.TeamMemberResponse;
 import com.workmanagement.backend.team.entity.Team;
@@ -50,6 +52,13 @@ public class TeamMemberService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('team:read')")
     public List<TeamMemberResponse> findAll(Long workspaceId, Long teamId) {
+        if (workspaceId == null || workspaceId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace id không hợp lệ");
+        }
+        if (teamId == null || teamId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Team id không hợp lệ");
+        }
+
         Team team = teamService.getTeam(workspaceId, teamId);
         workspaceService.verifyAccess(team.getWorkspace());
 
@@ -63,14 +72,32 @@ public class TeamMemberService {
     @Transactional
     @PreAuthorize("hasAuthority('team:update')")
     public TeamMemberResponse add(Long workspaceId, Long teamId, AddTeamMemberRequest request) {
+        if (workspaceId == null || workspaceId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace id không hợp lệ");
+        }
+        if (teamId == null || teamId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Team id không hợp lệ");
+        }
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Request không được để trống");
+        }
+        if (request.getWorkspaceMemberId() == null || request.getWorkspaceMemberId() <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "workspaceMemberId không hợp lệ");
+        }
+        if (request.getRoleId() == null || request.getRoleId() <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "roleId không hợp lệ");
+        }
+
         Team team = teamService.getTeam(workspaceId, teamId);
-        workspaceService.verifyCanManage(team.getWorkspace());
+        boolean workspaceManager = isWorkspaceManager(team);
+        if (!workspaceManager && !teamService.isActiveTeamLeader(team)) {
+            throw new BusinessException(
+                    ErrorCode.TEAM_ACCESS_DENIED,
+                    "Chỉ Workspace Owner/System Admin hoặc Team Leader của nhóm mới được thêm thành viên"
+            );
+        }
         ensureWorkspaceActive(team.getWorkspace());
         teamService.ensureTeamActive(team);
-
-        if (teamMemberRepository.existsByTeamIdAndWorkspaceMemberId(teamId, request.getWorkspaceMemberId())) {
-            throw new BusinessException(ErrorCode.TEAM_MEMBER_ALREADY_EXISTS, "Thành viên đã có trong nhóm");
-        }
 
         WorkspaceMember workspaceMember = workspaceMemberRepository.findById(request.getWorkspaceMemberId())
                 .filter(m -> m.getWorkspace().getId().equals(workspaceId))
@@ -80,22 +107,43 @@ public class TeamMemberService {
                         "Không tìm thấy thành viên workspace hoặc không hoạt động"
                 ));
 
+        if (workspaceMember.getUser().getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.USER_INACTIVE, "Tài khoản người dùng không hoạt động");
+        }
+
         Role role = roleService.getRole(request.getRoleId());
         validateTeamRole(role);
 
-        if (isTeamLeaderRole(role)) {
+        boolean assigningLeader = isTeamLeaderRole(role);
+        if (assigningLeader && !workspaceManager) {
+            throw new BusinessException(
+                    ErrorCode.TEAM_ACCESS_DENIED,
+                    "Chỉ Workspace Owner/System Admin mới được gán Team Leader"
+            );
+        }
+
+        if (teamMemberRepository.existsByTeamIdAndWorkspaceMemberIdAndStatus(
+                teamId, request.getWorkspaceMemberId(), MemberStatus.ACTIVE)) {
+            throw new BusinessException(ErrorCode.TEAM_MEMBER_ALREADY_EXISTS, "Thành viên đã có trong nhóm");
+        }
+
+        if (assigningLeader) {
             demoteExistingLeaders(teamId);
         }
 
         WorkspaceMember addedBy = findCurrentWorkspaceMember(workspaceId);
 
-        TeamMember member = TeamMember.builder()
-                .team(team)
-                .workspaceMember(workspaceMember)
-                .role(role)
-                .addedByWorkspaceMember(addedBy)
-                .status(MemberStatus.ACTIVE)
-                .build();
+        // Tái sử dụng bản ghi cũ đã INACTIVE (nếu có) thay vì báo trùng, tránh tạo trùng lặp dữ liệu.
+        TeamMember member = teamMemberRepository
+                .findFirstByTeamIdAndWorkspaceMemberIdAndStatus(
+                        teamId, request.getWorkspaceMemberId(), MemberStatus.INACTIVE)
+                .orElseGet(TeamMember::new);
+        member.setTeam(team);
+        member.setWorkspaceMember(workspaceMember);
+        member.setRole(role);
+        member.setAddedByWorkspaceMember(addedBy);
+        member.setStatus(MemberStatus.ACTIVE);
+        member.setRemovedAt(null);
 
         member = teamMemberRepository.save(member);
 
@@ -119,31 +167,82 @@ public class TeamMemberService {
             Long memberId,
             UpdateTeamMemberRequest request
     ) {
+        if (workspaceId == null || workspaceId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace id không hợp lệ");
+        }
+        if (teamId == null || teamId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Team id không hợp lệ");
+        }
+        if (memberId == null || memberId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Member id không hợp lệ");
+        }
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Request không được để trống");
+        }
+        if (request.getRoleId() != null && request.getRoleId() <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "roleId không hợp lệ");
+        }
+        if (request.getRoleId() == null && request.getStatus() == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Không có thông tin cập nhật");
+        }
+
         Team team = teamService.getTeam(workspaceId, teamId);
-        workspaceService.verifyCanManage(team.getWorkspace());
+        boolean workspaceManager = isWorkspaceManager(team);
+        if (!workspaceManager && !teamService.isActiveTeamLeader(team)) {
+            throw new BusinessException(
+                    ErrorCode.TEAM_ACCESS_DENIED,
+                    "Chỉ Workspace Owner/System Admin hoặc Team Leader của nhóm mới được cập nhật thành viên"
+            );
+        }
         ensureWorkspaceActive(team.getWorkspace());
         teamService.ensureTeamActive(team);
 
         TeamMember member = getTeamMember(teamId, memberId);
-        Role role = roleService.getRole(request.getRoleId());
-        validateTeamRole(role);
+        boolean currentlyLeader = isTeamLeaderRole(member.getRole());
+        boolean changed = false;
 
-        if (isTeamLeaderRole(role)) {
-            demoteExistingLeadersExcept(teamId, memberId);
+        if (request.getRoleId() != null) {
+            Role role = roleService.getRole(request.getRoleId());
+            validateTeamRole(role);
+
+            boolean assigningLeader = isTeamLeaderRole(role);
+            if (assigningLeader && !workspaceManager) {
+                throw new BusinessException(
+                        ErrorCode.TEAM_ACCESS_DENIED,
+                        "Chỉ Workspace Owner/System Admin mới được gán Team Leader"
+                );
+            }
+            if (!role.getId().equals(member.getRole().getId())) {
+                if (assigningLeader) {
+                    demoteExistingLeadersExcept(teamId, memberId);
+                }
+                member.setRole(role);
+                changed = true;
+            }
         }
 
-        member.setRole(role);
-
-        if (request.getStatus() != null) {
-            if (request.getStatus() == MemberStatus.INACTIVE && isTeamLeaderRole(member.getRole())) {
-                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Không thể vô hiệu hoá Team Leader, hãy gán leader khác trước");
+        if (request.getStatus() != null && request.getStatus() != member.getStatus()) {
+            boolean leaderInvolved = currentlyLeader || isTeamLeaderRole(member.getRole());
+            if (request.getStatus() == MemberStatus.INACTIVE && leaderInvolved) {
+                throw new BusinessException(
+                        ErrorCode.VALIDATION_ERROR,
+                        "Không thể vô hiệu hoá Team Leader, hãy gán leader khác trước"
+                );
+            }
+            if (request.getStatus() == MemberStatus.ACTIVE
+                    && member.getWorkspaceMember().getUser().getStatus() != UserStatus.ACTIVE) {
+                throw new BusinessException(
+                        ErrorCode.USER_INACTIVE,
+                        "Tài khoản người dùng không hoạt động, không thể kích hoạt lại trong nhóm"
+                );
             }
             member.setStatus(request.getStatus());
-            if (request.getStatus() == MemberStatus.INACTIVE) {
-                member.setRemovedAt(LocalDateTime.now());
-            } else {
-                member.setRemovedAt(null);
-            }
+            member.setRemovedAt(request.getStatus() == MemberStatus.INACTIVE ? LocalDateTime.now() : null);
+            changed = true;
+        }
+
+        if (!changed) {
+            return teamMemberMapper.toResponse(member);
         }
 
         member = teamMemberRepository.save(member);
@@ -153,7 +252,7 @@ public class TeamMemberService {
                 ActivityLogAction.TEAM_MEMBER_UPDATED,
                 ActivityLogAction.TARGET_TEAM_MEMBER,
                 member.getId(),
-                role.getName()
+                member.getRole().getName()
         );
 
         return teamMemberMapper.toResponse(member);
@@ -163,6 +262,7 @@ public class TeamMemberService {
     @Transactional
     @PreAuthorize("hasAuthority('team:update')")
     public TeamMemberResponse assignLeader(Long workspaceId, Long teamId, Long memberId) {
+        validateTeamLeaderRequest(workspaceId, teamId, memberId);
         Team team = teamService.getTeam(workspaceId, teamId);
         workspaceService.verifyCanManage(team.getWorkspace());
         ensureWorkspaceActive(team.getWorkspace());
@@ -171,6 +271,9 @@ public class TeamMemberService {
         TeamMember member = getTeamMember(teamId, memberId);
         if (member.getStatus() != MemberStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Thành viên không hoạt động");
+        }
+        if (isTeamLeaderRole(member.getRole())) {
+            return teamMemberMapper.toResponse(member);
         }
 
         Role leaderRole = findTeamLeaderRole();
@@ -190,6 +293,121 @@ public class TeamMemberService {
         return teamMemberMapper.toResponse(member);
     }
 
+    /** UC-2.7 — Thu hồi Team Leader */
+    @Transactional
+    @PreAuthorize("hasAuthority('team:update')")
+    public TeamMemberResponse revokeLeader(Long workspaceId, Long teamId, Long memberId) {
+        validateTeamLeaderRequest(workspaceId, teamId, memberId);
+        Team team = teamService.getTeam(workspaceId, teamId);
+        workspaceService.verifyCanManage(team.getWorkspace());
+        ensureWorkspaceActive(team.getWorkspace());
+        teamService.ensureTeamActive(team);
+
+        TeamMember member = getTeamMember(teamId, memberId);
+        if (member.getStatus() != MemberStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Thành viên không hoạt động");
+        }
+        if (!isTeamLeaderRole(member.getRole())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Thành viên không phải Team Leader");
+        }
+
+        member.setRole(findTeamMemberRole());
+        member = teamMemberRepository.save(member);
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.TEAM_LEADER_REVOKED,
+                ActivityLogAction.TARGET_TEAM_MEMBER,
+                member.getId(),
+                member.getWorkspaceMember().getUser().getFullName()
+        );
+
+        return teamMemberMapper.toResponse(member);
+    }
+
+    /** UC-2.6 — Điều chuyển nhân sự giữa các team */
+    @Transactional
+    @PreAuthorize("hasAuthority('workspace:update')")
+    public TeamMemberResponse transfer(
+            Long workspaceId,
+            Long teamId,
+            Long memberId,
+            TransferTeamMemberRequest request
+    ) {
+        validateTeamMemberTransferRequest(workspaceId, teamId, memberId, request);
+
+        Team sourceTeam = teamService.getTeam(workspaceId, teamId);
+        Team targetTeam = teamService.getTeam(workspaceId, request.getTargetTeamId());
+        if (sourceTeam.getId().equals(targetTeam.getId())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Team nguồn và team đích phải khác nhau");
+        }
+
+        workspaceService.verifyCanManage(sourceTeam.getWorkspace());
+        ensureWorkspaceActive(sourceTeam.getWorkspace());
+        teamService.ensureTeamActive(sourceTeam);
+        teamService.ensureTeamActive(targetTeam);
+
+        TeamMember sourceMember = getTeamMember(teamId, memberId);
+        if (sourceMember.getStatus() != MemberStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Thành viên không hoạt động");
+        }
+        if (isTeamLeaderRole(sourceMember.getRole())) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "Không thể điều chuyển Team Leader, hãy gán leader khác trước"
+            );
+        }
+
+        WorkspaceMember workspaceMember = sourceMember.getWorkspaceMember();
+        if (workspaceMember == null || workspaceMember.getUser() == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Thông tin thành viên không hợp lệ");
+        }
+        if (workspaceMember.getUser().getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.USER_INACTIVE, "Tài khoản người dùng không hoạt động");
+        }
+
+        TeamMember targetMember = teamMemberRepository
+                .findFirstByTeamIdAndWorkspaceMemberIdAndStatus(
+                        targetTeam.getId(),
+                        workspaceMember.getId(),
+                        MemberStatus.ACTIVE
+                )
+                .orElseGet(() -> teamMemberRepository
+                        .findFirstByTeamIdAndWorkspaceMemberIdAndStatus(
+                                targetTeam.getId(),
+                                workspaceMember.getId(),
+                                MemberStatus.INACTIVE
+                        )
+                        .orElseGet(TeamMember::new));
+
+        Role teamMemberRole = findTeamMemberRole();
+        WorkspaceMember addedBy = findCurrentWorkspaceMember(workspaceId);
+
+        sourceMember.setStatus(MemberStatus.INACTIVE);
+        sourceMember.setRemovedAt(LocalDateTime.now());
+        teamMemberRepository.save(sourceMember);
+
+        if (targetMember.getId() == null || targetMember.getStatus() != MemberStatus.ACTIVE) {
+            targetMember.setTeam(targetTeam);
+            targetMember.setWorkspaceMember(workspaceMember);
+            targetMember.setRole(teamMemberRole);
+            targetMember.setAddedByWorkspaceMember(addedBy);
+            targetMember.setStatus(MemberStatus.ACTIVE);
+            targetMember.setRemovedAt(null);
+            targetMember = teamMemberRepository.save(targetMember);
+        }
+
+        activityLogService.recordOrgEvent(
+                SecurityUtils.getCurrentUserId(),
+                ActivityLogAction.TEAM_MEMBER_TRANSFERRED,
+                ActivityLogAction.TARGET_TEAM_MEMBER,
+                targetMember.getId(),
+                sourceTeam.getName() + " -> " + targetTeam.getName() + " : " + workspaceMember.getUser().getFullName()
+        );
+
+        return teamMemberMapper.toResponse(targetMember);
+    }
+
     private TeamMember getTeamMember(Long teamId, Long memberId) {
         return teamMemberRepository.findByIdAndTeamId(memberId, teamId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.TEAM_MEMBER_NOT_FOUND, "Không tìm thấy thành viên nhóm"));
@@ -199,6 +417,16 @@ public class TeamMemberService {
         Long userId = SecurityUtils.getCurrentUserId();
         return workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
                 .orElse(null);
+    }
+
+    /** Actor là Workspace Owner / System Admin (quản lý mọi team trong workspace). */
+    private boolean isWorkspaceManager(Team team) {
+        try {
+            workspaceService.verifyCanManage(team.getWorkspace());
+            return true;
+        } catch (BusinessException ex) {
+            return false;
+        }
     }
 
     private void validateTeamRole(Role role) {
@@ -240,6 +468,33 @@ public class TeamMemberService {
     private void ensureWorkspaceActive(Workspace workspace) {
         if (workspace.getStatus() != CommonStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace đã đóng");
+        }
+    }
+
+    private void validateTeamLeaderRequest(Long workspaceId, Long teamId, Long memberId) {
+        if (workspaceId == null || workspaceId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace id không hợp lệ");
+        }
+        if (teamId == null || teamId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Team id không hợp lệ");
+        }
+        if (memberId == null || memberId <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Member id không hợp lệ");
+        }
+    }
+
+    private void validateTeamMemberTransferRequest(
+            Long workspaceId,
+            Long teamId,
+            Long memberId,
+            TransferTeamMemberRequest request
+    ) {
+        validateTeamLeaderRequest(workspaceId, teamId, memberId);
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Request không được để trống");
+        }
+        if (request.getTargetTeamId() == null || request.getTargetTeamId() <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "targetTeamId không hợp lệ");
         }
     }
 

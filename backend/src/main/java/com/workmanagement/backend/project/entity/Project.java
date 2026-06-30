@@ -40,8 +40,8 @@ public class Project {
     @JoinColumn(name = "team_id", nullable = false)
     private Team team;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "project_manager_member_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_manager_member_id")
     private TeamMember projectManagerMember;
 
     @Column(nullable = false, unique = true, length = 50)

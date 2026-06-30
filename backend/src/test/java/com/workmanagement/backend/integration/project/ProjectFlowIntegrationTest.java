@@ -77,7 +77,6 @@ class ProjectFlowIntegrationTest extends AbstractIntegrationTest {
         Long teamMemberId = readData(teamMemberResult).get("id").asLong();
 
         CreateProjectRequest projectRequest = new CreateProjectRequest();
-        projectRequest.setCode("FLOW-" + suffix);
         projectRequest.setName("Flow Project " + suffix);
         projectRequest.setStartDate(LocalDate.now());
         projectRequest.setEndDate(LocalDate.now().plusMonths(2));
@@ -109,7 +108,7 @@ class ProjectFlowIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(projectId))
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"))
-                .andExpect(jsonPath("$.data.code").value("FLOW-" + suffix));
+                .andExpect(jsonPath("$.data.code").value(org.hamcrest.Matchers.startsWith("PRJ-")));
     }
 
     @Test

@@ -20,8 +20,16 @@ public class ProjectMapper {
                 .startDate(project.getStartDate())
                 .endDate(project.getEndDate())
                 .status(project.getStatus())
-                .projectManagerMemberId(project.getProjectManagerMember().getId())
-                .projectManagerName(project.getProjectManagerMember().getWorkspaceMember().getUser().getFullName())
+                .projectManagerMemberId(
+                        project.getProjectManagerMember() != null ? project.getProjectManagerMember().getId() : null
+                )
+                .projectManagerName(
+                        project.getProjectManagerMember() != null
+                                && project.getProjectManagerMember().getWorkspaceMember() != null
+                                && project.getProjectManagerMember().getWorkspaceMember().getUser() != null
+                                ? project.getProjectManagerMember().getWorkspaceMember().getUser().getFullName()
+                                : null
+                )
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())
                 .build();
