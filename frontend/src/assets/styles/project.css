@@ -330,6 +330,288 @@
   color: var(--color-text);
 }
 
+.backlog-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+  gap: 1rem;
+  align-items: start;
+}
+
+.backlog-main,
+.backlog-detail-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.backlog-main {
+  overflow: hidden;
+}
+
+.backlog-toolbar {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) repeat(3, minmax(8rem, 10rem)) auto;
+  gap: 0.75rem;
+  align-items: end;
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.backlog-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.55rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.backlog-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-heading);
+}
+
+.backlog-toolbar .field {
+  gap: 0.25rem;
+}
+
+.backlog-toolbar .field__label {
+  font-size: 0.72rem;
+}
+
+.backlog-toolbar .field__input {
+  min-height: 2.55rem;
+}
+
+.backlog-toolbar__icon {
+  margin-bottom: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.backlog-table-wrap {
+  overflow-x: auto;
+}
+
+.backlog-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.backlog-table th,
+.backlog-table td {
+  padding: 0.85rem 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.backlog-table th {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.backlog-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.backlog-table tbody tr:hover,
+.backlog-table__row--active {
+  background: #f8fafc;
+}
+
+.backlog-table td strong,
+.backlog-table td small {
+  display: block;
+}
+
+.backlog-table td strong {
+  color: var(--color-heading);
+  font-size: 0.875rem;
+}
+
+.backlog-table td small {
+  max-width: 20rem;
+  margin-top: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.backlog-code {
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.backlog-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.55rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.backlog-badge--neutral {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.backlog-badge--info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.backlog-badge--purple {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.backlog-badge--warning {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.backlog-badge--danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.backlog-task-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.backlog-detail-panel {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem;
+}
+
+.backlog-detail-panel__top,
+.backlog-detail-section__header,
+.backlog-task-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.backlog-detail-panel__title {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: 1.25rem;
+}
+
+.backlog-detail-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem 1rem;
+  align-items: center;
+}
+
+.backlog-detail-meta span {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.backlog-detail-meta strong {
+  color: var(--color-heading);
+  font-size: 0.875rem;
+}
+
+.backlog-detail-section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.backlog-detail-section h4 {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: 0.95rem;
+}
+
+.backlog-detail-section p {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.backlog-detail-section__header span {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.backlog-task-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.backlog-task-card {
+  padding: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.backlog-task-card > div:first-child {
+  min-width: 0;
+}
+
+.backlog-task-card span,
+.backlog-task-card strong,
+.backlog-task-card small {
+  display: block;
+}
+
+.backlog-task-card span {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.backlog-task-card strong {
+  margin-top: 0.2rem;
+  color: var(--color-heading);
+  font-size: 0.9rem;
+}
+
+.backlog-task-card small {
+  margin-top: 0.2rem;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.backlog-add-task {
+  width: 100%;
+  justify-content: center;
+  border-style: dashed;
+}
+
 .project-detail-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1083,8 +1365,14 @@
   .project-detail-stats,
   .project-detail-grid,
   .project-detail-field-grid,
-  .project-detail-two-cols {
+  .project-detail-two-cols,
+  .backlog-workspace,
+  .backlog-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .backlog-detail-panel {
+    position: static;
   }
 
   .project-layout__title-row {

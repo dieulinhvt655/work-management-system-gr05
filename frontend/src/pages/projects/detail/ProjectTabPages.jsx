@@ -4,12 +4,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   CalendarDays,
   CheckCircle2,
+  Edit3,
   FileText,
   FileUp,
+  Filter,
   FolderKanban,
   ListChecks,
+  ListTodo,
   Plus,
+  Search,
   Target,
+  Trash2,
   TrendingUp,
   UserCheck,
   Users,
@@ -18,6 +23,8 @@ import {
   addProjectMember,
   createBacklogItem,
   createBacklogItemTask,
+  deleteBacklogItem,
+  deleteBacklogItemTask,
   fetchBacklogItemTasks,
   fetchProjectActivityLogs,
   fetchProjectAttachments,
@@ -25,6 +32,8 @@ import {
   fetchProjectBacklogItems,
   fetchProjectDashboard,
   fetchProjectMembers,
+  updateBacklogItem,
+  updateBacklogItemTask,
   updateProject,
   updateProjectMember,
   uploadProjectAttachment,
@@ -182,20 +191,31 @@ function AddProjectMemberModal({
   )
 }
 
-function BacklogItemModal({ onClose, onSave, isSaving, error }) {
+const PBI_TYPES = ['FEATURE', 'BUG', 'IMPROVEMENT', 'TASK', 'OTHER']
+const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
+const PBI_STATUSES = ['NEW', 'READY', 'IN_SPRINT', 'ON_HOLD', 'DONE', 'COMPLETED']
+const TASK_STATUSES = ['TO_DO', 'IN_PROGRESS', 'REVIEW', 'DONE', 'REOPENED', 'CANCELLED']
+
+function BacklogItemModal({ item = null, onClose, onSave, isSaving, error }) {
   const [values, setValues] = useState({
-    title: '',
-    description: '',
-    type: 'FEATURE',
-    priority: 'MEDIUM',
-    desiredDueDate: '',
+    title: item?.title ?? '',
+    description: item?.description ?? '',
+    type: item?.type ?? 'FEATURE',
+    priority: item?.priority ?? 'MEDIUM',
+    status: item?.status ?? 'NEW',
+    desiredDueDate: item?.desiredDueDate ?? '',
   })
 
   const set = (key, value) =>
     setValues((current) => ({ ...current, [key]: value }))
 
   return (
-    <Modal title="Thêm backlog item" onClose={onClose} size="md">
+    <Modal
+      title={item ? 'Cập nhật Product Backlog Item' : 'Tạo Product Backlog Item'}
+      description={item ? item.title : 'Ghi nhận yêu cầu, lỗi, cải tiến hoặc hạng mục công việc mới.'}
+      onClose={onClose}
+      size="md"
+    >
       <form
         className="project-form"
         onSubmit={(event) => {
@@ -217,7 +237,7 @@ function BacklogItemModal({ onClose, onSave, isSaving, error }) {
             value={values.type}
             onChange={(event) => set('type', event.target.value)}
           >
-            {['FEATURE', 'BUG', 'IMPROVEMENT', 'TASK', 'OTHER'].map((type) => (
+            {PBI_TYPES.map((type) => (
               <option key={type} value={type}>
                 {type}
               </option>
@@ -229,20 +249,34 @@ function BacklogItemModal({ onClose, onSave, isSaving, error }) {
             value={values.priority}
             onChange={(event) => set('priority', event.target.value)}
           >
-            {['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map((priority) => (
+            {PRIORITIES.map((priority) => (
               <option key={priority} value={priority}>
                 {priority}
               </option>
             ))}
           </SelectField>
         </div>
-        <TextField
-          id="backlog-due"
-          type="date"
-          label="Ngày mong muốn"
-          value={values.desiredDueDate}
-          onChange={(event) => set('desiredDueDate', event.target.value)}
-        />
+        <div className="project-form__grid">
+          <SelectField
+            id="backlog-status"
+            label="Trạng thái"
+            value={values.status}
+            onChange={(event) => set('status', event.target.value)}
+          >
+            {PBI_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </SelectField>
+          <TextField
+            id="backlog-due"
+            type="date"
+            label="Ngày mong muốn"
+            value={values.desiredDueDate}
+            onChange={(event) => set('desiredDueDate', event.target.value)}
+          />
+        </div>
         <div className="field">
           <label className="field__label" htmlFor="backlog-description">
             Mô tả
@@ -260,7 +294,7 @@ function BacklogItemModal({ onClose, onSave, isSaving, error }) {
             Hủy
           </Button>
           <Button type="submit" variant="primary" disabled={isSaving || !values.title.trim()}>
-            {isSaving ? 'Đang lưu...' : 'Thêm item'}
+            {isSaving ? 'Đang lưu...' : item ? 'Cập nhật PBI' : 'Tạo PBI'}
           </Button>
         </div>
       </form>
@@ -268,20 +302,26 @@ function BacklogItemModal({ onClose, onSave, isSaving, error }) {
   )
 }
 
-function TaskModal({ members, onClose, onSave, isSaving, error }) {
+function TaskModal({ task = null, members, onClose, onSave, isSaving, error }) {
   const [values, setValues] = useState({
-    title: '',
-    description: '',
-    priority: 'MEDIUM',
-    assigneeMemberId: '',
-    deadline: '',
+    title: task?.title ?? '',
+    description: task?.description ?? '',
+    priority: task?.priority ?? 'MEDIUM',
+    status: task?.status ?? 'TO_DO',
+    assigneeMemberId: task?.assigneeMemberId ?? '',
+    deadline: task?.deadline ?? '',
   })
 
   const set = (key, value) =>
     setValues((current) => ({ ...current, [key]: value }))
 
   return (
-    <Modal title="Thêm task" onClose={onClose} size="md">
+    <Modal
+      title={task ? 'Cập nhật task' : 'Thêm task'}
+      description={task ? task.title : 'Phân rã PBI thành công việc chuẩn bị cho Sprint.'}
+      onClose={onClose}
+      size="md"
+    >
       <form
         className="project-form"
         onSubmit={(event) => {
@@ -303,12 +343,26 @@ function TaskModal({ members, onClose, onSave, isSaving, error }) {
             value={values.priority}
             onChange={(event) => set('priority', event.target.value)}
           >
-            {['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map((priority) => (
+            {PRIORITIES.map((priority) => (
               <option key={priority} value={priority}>
                 {priority}
               </option>
             ))}
           </SelectField>
+          <SelectField
+            id="task-status"
+            label="Trạng thái"
+            value={values.status}
+            onChange={(event) => set('status', event.target.value)}
+          >
+            {TASK_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+        <div className="project-form__grid">
           <SelectField
             id="task-assignee"
             label="Người nhận"
@@ -322,14 +376,14 @@ function TaskModal({ members, onClose, onSave, isSaving, error }) {
               </option>
             ))}
           </SelectField>
+          <TextField
+            id="task-deadline"
+            type="date"
+            label="Deadline"
+            value={values.deadline}
+            onChange={(event) => set('deadline', event.target.value)}
+          />
         </div>
-        <TextField
-          id="task-deadline"
-          type="date"
-          label="Deadline"
-          value={values.deadline}
-          onChange={(event) => set('deadline', event.target.value)}
-        />
         <div className="field">
           <label className="field__label" htmlFor="task-description">
             Mô tả
@@ -347,11 +401,23 @@ function TaskModal({ members, onClose, onSave, isSaving, error }) {
             Hủy
           </Button>
           <Button type="submit" variant="primary" disabled={isSaving || !values.title.trim()}>
-            {isSaving ? 'Đang lưu...' : 'Thêm task'}
+            {isSaving ? 'Đang lưu...' : task ? 'Cập nhật task' : 'Thêm task'}
           </Button>
         </div>
       </form>
     </Modal>
+  )
+}
+
+function statusText(value) {
+  return String(value ?? '—').replaceAll('_', ' ')
+}
+
+function BacklogBadge({ value, tone = 'neutral' }) {
+  return (
+    <span className={`backlog-badge backlog-badge--${tone}`}>
+      {statusText(value)}
+    </span>
   )
 }
 
@@ -591,12 +657,17 @@ export function ProjectBacklogPage() {
   const { project } = useProject()
   const { can } = usePermission()
   const queryClient = useQueryClient()
-  const [showItemModal, setShowItemModal] = useState(false)
-  const [taskItem, setTaskItem] = useState(null)
+  const [keyword, setKeyword] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [itemModal, setItemModal] = useState(null)
+  const [taskModal, setTaskModal] = useState(null)
+  const [selectedItemId, setSelectedItemId] = useState('')
   const [actionError, setActionError] = useState('')
   const canManageBacklog =
-    can(PERMISSIONS.BACKLOG_MANAGE) &&
-    (project?.isCurrentUserTeamLeader || project?.isCurrentUserProjectManager)
+    project?.isCurrentUserProjectManager ||
+    (can(PERMISSIONS.BACKLOG_MANAGE) && project?.isCurrentUserTeamLeader)
   const { data: backlog } = useQuery({
     queryKey: ['projects', project?.id, 'backlog'],
     queryFn: () => fetchProjectBacklog(project),
@@ -607,6 +678,18 @@ export function ProjectBacklogPage() {
     queryFn: () => fetchProjectBacklogItems(project),
     enabled: Boolean(project),
   })
+  const selectedItem = useMemo(() => {
+    if (selectedItemId) {
+      const byId = items.find((item) => item.id === selectedItemId)
+      if (byId) return byId
+    }
+    return items[0] ?? null
+  }, [items, selectedItemId])
+  const { data: selectedTasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ['projects', project?.id, 'backlog-items', selectedItem?.id, 'tasks'],
+    queryFn: () => fetchBacklogItemTasks(project, selectedItem.id),
+    enabled: Boolean(project && selectedItem),
+  })
   const { data: members = [] } = useQuery({
     queryKey: ['projects', project?.id, 'members'],
     queryFn: () => fetchProjectMembers(project),
@@ -615,7 +698,24 @@ export function ProjectBacklogPage() {
 
   const invalidateBacklog = () => {
     queryClient.invalidateQueries({ queryKey: ['projects', project?.id] })
+    queryClient.invalidateQueries({ queryKey: ['projects', project?.id, 'backlog-items'] })
+    queryClient.invalidateQueries({ queryKey: ['projects', project?.id, 'dashboard'] })
   }
+
+  const filteredItems = useMemo(() => {
+    const normalized = keyword.trim().toLowerCase()
+    return items.filter((item) => {
+      const matchesKeyword =
+        !normalized ||
+        [item.title, item.description, item.id]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(normalized))
+      const matchesStatus = !statusFilter || item.status === statusFilter
+      const matchesPriority = !priorityFilter || item.priority === priorityFilter
+      const matchesType = !typeFilter || item.type === typeFilter
+      return matchesKeyword && matchesStatus && matchesPriority && matchesType
+    })
+  }, [items, keyword, priorityFilter, statusFilter, typeFilter])
 
   const createItemMutation = useMutation({
     mutationFn: (values) =>
@@ -624,7 +724,7 @@ export function ProjectBacklogPage() {
         proposerMemberId: project?.currentMember?.id,
       }),
     onSuccess: () => {
-      setShowItemModal(false)
+      setItemModal(null)
       setActionError('')
       invalidateBacklog()
     },
@@ -633,11 +733,37 @@ export function ProjectBacklogPage() {
     },
   })
 
+  const updateItemMutation = useMutation({
+    mutationFn: ({ item, values }) => updateBacklogItem(project, item.id, values),
+    onSuccess: () => {
+      setItemModal(null)
+      setActionError('')
+      invalidateBacklog()
+    },
+    onError: (error) => {
+      setActionError(getErrorMessage(error, 'Không thể cập nhật backlog item.'))
+    },
+  })
+
+  const deleteItemMutation = useMutation({
+    mutationFn: (item) => deleteBacklogItem(project, item.id),
+    onSuccess: (_, item) => {
+      setActionError('')
+      if (selectedItem?.id === item.id) {
+        setSelectedItemId('')
+      }
+      invalidateBacklog()
+    },
+    onError: (error) => {
+      setActionError(getErrorMessage(error, 'Không thể xóa backlog item.'))
+    },
+  })
+
   const createTaskMutation = useMutation({
     mutationFn: ({ item, values }) =>
       createBacklogItemTask(project, item.id, values),
     onSuccess: () => {
-      setTaskItem(null)
+      setTaskModal(null)
       setActionError('')
       invalidateBacklog()
     },
@@ -645,6 +771,54 @@ export function ProjectBacklogPage() {
       setActionError(getErrorMessage(error, 'Không thể thêm task.'))
     },
   })
+
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ item, task, values }) =>
+      updateBacklogItemTask(project, item.id, task.id, values),
+    onSuccess: () => {
+      setTaskModal(null)
+      setActionError('')
+      invalidateBacklog()
+    },
+    onError: (error) => {
+      setActionError(getErrorMessage(error, 'Không thể cập nhật task.'))
+    },
+  })
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: ({ item, task }) => deleteBacklogItemTask(project, item.id, task.id),
+    onSuccess: () => {
+      setActionError('')
+      invalidateBacklog()
+    },
+    onError: (error) => {
+      setActionError(getErrorMessage(error, 'Không thể xóa task.'))
+    },
+  })
+
+  const saveItem = (values) => {
+    if (itemModal?.item) {
+      updateItemMutation.mutate({ item: itemModal.item, values })
+      return
+    }
+    createItemMutation.mutate(values)
+  }
+
+  const saveTask = (values) => {
+    if (!taskModal?.item) return
+    if (taskModal.task) {
+      updateTaskMutation.mutate({
+        item: taskModal.item,
+        task: taskModal.task,
+        values,
+      })
+      return
+    }
+    createTaskMutation.mutate({ item: taskModal.item, values })
+  }
+
+  const itemSaving = createItemMutation.isPending || updateItemMutation.isPending
+  const taskSaving = createTaskMutation.isPending || updateTaskMutation.isPending
 
   return (
     <PermissionRoute permission={PERMISSIONS.BACKLOG_READ}>
@@ -658,11 +832,11 @@ export function ProjectBacklogPage() {
               variant="primary"
               onClick={() => {
                 setActionError('')
-                setShowItemModal(true)
+                setItemModal({ item: null })
               }}
             >
               <Plus size={16} aria-hidden="true" />
-              Thêm item
+              Tạo PBI
             </Button>
           ) : null
         }
@@ -672,62 +846,299 @@ export function ProjectBacklogPage() {
             {actionError}
           </p>
         )}
-        {items.length === 0 ? (
-          <EmptyState>Backlog chưa có item nào.</EmptyState>
-        ) : (
-          <div className="project-data-list">
-            {items.map((item) => (
-              <article key={item.id} className="project-data-row">
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>{item.description || '—'}</p>
-                </div>
-                <span>{item.priority}</span>
-                <span>{item.status}</span>
-                {canManageBacklog && (
-                  <button
-                    type="button"
-                    className="btn btn--ghost project-row-actions__text"
-                    onClick={() => {
-                      setActionError('')
-                      setTaskItem(item)
-                    }}
-                  >
-                    Thêm task
-                  </button>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
 
-        {showItemModal && (
+        <div className="backlog-workspace">
+          <section className="backlog-main">
+            <div className="backlog-toolbar">
+              <label className="backlog-search" htmlFor="backlog-search">
+                <Search size={16} aria-hidden="true" />
+                <input
+                  id="backlog-search"
+                  type="search"
+                  value={keyword}
+                  onChange={(event) => setKeyword(event.target.value)}
+                  placeholder="Tìm PBI..."
+                />
+              </label>
+              <SelectField
+                id="backlog-status-filter"
+                label="Trạng thái"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="">Tất cả</option>
+                {PBI_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {statusText(status)}
+                  </option>
+                ))}
+              </SelectField>
+              <SelectField
+                id="backlog-priority-filter"
+                label="Độ ưu tiên"
+                value={priorityFilter}
+                onChange={(event) => setPriorityFilter(event.target.value)}
+              >
+                <option value="">Tất cả</option>
+                {PRIORITIES.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {priority}
+                  </option>
+                ))}
+              </SelectField>
+              <SelectField
+                id="backlog-type-filter"
+                label="Loại"
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value)}
+              >
+                <option value="">Tất cả</option>
+                {PBI_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </SelectField>
+              <Filter size={18} aria-hidden="true" className="backlog-toolbar__icon" />
+            </div>
+
+            {filteredItems.length === 0 ? (
+              <EmptyState>Không có PBI phù hợp.</EmptyState>
+            ) : (
+              <div className="backlog-table-wrap">
+                <table className="backlog-table">
+                  <thead>
+                    <tr>
+                      <th>Mã PBI</th>
+                      <th>Tiêu đề</th>
+                      <th>Loại</th>
+                      <th>Ưu tiên</th>
+                      <th>SP</th>
+                      <th>Trạng thái</th>
+                      <th>Tasks</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredItems.map((item) => (
+                      <tr
+                        key={item.id}
+                        className={selectedItem?.id === item.id ? 'backlog-table__row--active' : ''}
+                        onClick={() => setSelectedItemId(item.id)}
+                      >
+                        <td>
+                          <button type="button" className="backlog-code">
+                            PBI-{item.id}
+                          </button>
+                        </td>
+                        <td>
+                          <strong>{item.title}</strong>
+                          <small>{item.description || '—'}</small>
+                        </td>
+                        <td>
+                          <BacklogBadge
+                            value={item.type}
+                            tone={item.type === 'BUG' ? 'danger' : 'purple'}
+                          />
+                        </td>
+                        <td>
+                          <BacklogBadge
+                            value={item.priority}
+                            tone={item.priority === 'HIGH' || item.priority === 'URGENT' ? 'danger' : 'warning'}
+                          />
+                        </td>
+                        <td>{item.storyPoints ?? '—'}</td>
+                        <td>
+                          <BacklogBadge value={item.status} tone="info" />
+                        </td>
+                        <td>
+                          <span className="backlog-task-count">
+                            <ListTodo size={14} aria-hidden="true" />
+                            {selectedItem?.id === item.id ? selectedTasks.length : '—'}
+                          </span>
+                        </td>
+                        <td>
+                          {canManageBacklog && (
+                            <div className="project-row-actions" onClick={(event) => event.stopPropagation()}>
+                              <button
+                                type="button"
+                                className="icon-btn"
+                                onClick={() => {
+                                  setActionError('')
+                                  setItemModal({ item })
+                                }}
+                                aria-label="Sửa PBI"
+                              >
+                                <Edit3 size={16} aria-hidden="true" />
+                              </button>
+                              <button
+                                type="button"
+                                className="icon-btn"
+                                onClick={() => {
+                                  if (window.confirm('Xóa Product Backlog Item này?')) {
+                                    deleteItemMutation.mutate(item)
+                                  }
+                                }}
+                                aria-label="Xóa PBI"
+                                disabled={deleteItemMutation.isPending}
+                              >
+                                <Trash2 size={16} aria-hidden="true" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <aside className="backlog-detail-panel">
+            {selectedItem ? (
+              <>
+                <div className="backlog-detail-panel__top">
+                  <BacklogBadge value={`PBI-${selectedItem.id}`} tone="info" />
+                  {canManageBacklog && (
+                    <div className="project-row-actions">
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => setItemModal({ item: selectedItem })}
+                        aria-label="Sửa PBI đang chọn"
+                      >
+                        <Edit3 size={16} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => {
+                          if (window.confirm('Xóa Product Backlog Item này?')) {
+                            deleteItemMutation.mutate(selectedItem)
+                          }
+                        }}
+                        aria-label="Xóa PBI đang chọn"
+                        disabled={deleteItemMutation.isPending}
+                      >
+                        <Trash2 size={16} aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <h3 className="backlog-detail-panel__title">{selectedItem.title}</h3>
+                <div className="backlog-detail-meta">
+                  <span>Trạng thái</span>
+                  <BacklogBadge value={selectedItem.status} tone="info" />
+                  <span>Loại</span>
+                  <BacklogBadge value={selectedItem.type} tone="purple" />
+                  <span>Độ ưu tiên</span>
+                  <BacklogBadge value={selectedItem.priority} tone="warning" />
+                  <span>Ngày mong muốn</span>
+                  <strong>{formatDate(selectedItem.desiredDueDate)}</strong>
+                </div>
+
+                <section className="backlog-detail-section">
+                  <h4>Mô tả chi tiết</h4>
+                  <p>{selectedItem.description || 'Chưa có mô tả.'}</p>
+                </section>
+
+                <section className="backlog-detail-section">
+                  <div className="backlog-detail-section__header">
+                    <h4>Phân rã task</h4>
+                    <span>{selectedTasks.length} task</span>
+                  </div>
+                  {tasksLoading ? (
+                    <p className="project-tab-empty">Đang tải task...</p>
+                  ) : selectedTasks.length === 0 ? (
+                    <p className="project-tab-empty">PBI chưa có task.</p>
+                  ) : (
+                    <div className="backlog-task-list">
+                      {selectedTasks.map((task) => (
+                        <article key={task.id} className="backlog-task-card">
+                          <div>
+                            <span>{task.id}</span>
+                            <strong>{task.title}</strong>
+                            <small>{task.assigneeName || 'Chưa gán'} · {statusText(task.status)}</small>
+                          </div>
+                          {canManageBacklog && (
+                            <div className="project-row-actions">
+                              <button
+                                type="button"
+                                className="icon-btn"
+                                onClick={() => setTaskModal({ item: selectedItem, task })}
+                                aria-label="Sửa task"
+                              >
+                                <Edit3 size={16} aria-hidden="true" />
+                              </button>
+                              <button
+                                type="button"
+                                className="icon-btn"
+                                onClick={() => {
+                                  if (window.confirm('Xóa task này?')) {
+                                    deleteTaskMutation.mutate({ item: selectedItem, task })
+                                  }
+                                }}
+                                aria-label="Xóa task"
+                                disabled={deleteTaskMutation.isPending}
+                              >
+                                <Trash2 size={16} aria-hidden="true" />
+                              </button>
+                            </div>
+                          )}
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                  {canManageBacklog && (
+                    <button
+                      type="button"
+                      className="btn btn--ghost backlog-add-task"
+                      onClick={() => {
+                        setActionError('')
+                        setTaskModal({ item: selectedItem, task: null })
+                      }}
+                    >
+                      <Plus size={16} aria-hidden="true" />
+                      Thêm task
+                    </button>
+                  )}
+                </section>
+              </>
+            ) : (
+              <EmptyState>Chọn một PBI để xem chi tiết và phân rã task.</EmptyState>
+            )}
+          </aside>
+        </div>
+
+        {itemModal && (
           <BacklogItemModal
+            item={itemModal.item}
             onClose={() => {
-              if (!createItemMutation.isPending) {
-                setShowItemModal(false)
+              if (!itemSaving) {
+                setItemModal(null)
                 setActionError('')
               }
             }}
-            onSave={(values) => createItemMutation.mutate(values)}
-            isSaving={createItemMutation.isPending}
+            onSave={saveItem}
+            isSaving={itemSaving}
             error={actionError}
           />
         )}
 
-        {taskItem && (
+        {taskModal && (
           <TaskModal
+            task={taskModal.task}
             members={members}
             onClose={() => {
-              if (!createTaskMutation.isPending) {
-                setTaskItem(null)
+              if (!taskSaving) {
+                setTaskModal(null)
                 setActionError('')
               }
             }}
-            onSave={(values) =>
-              createTaskMutation.mutate({ item: taskItem, values })
-            }
-            isSaving={createTaskMutation.isPending}
+            onSave={saveTask}
+            isSaving={taskSaving}
             error={actionError}
           />
         )}

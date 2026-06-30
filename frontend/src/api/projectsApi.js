@@ -344,6 +344,39 @@ export async function createBacklogItem(project, payload) {
   return mapBacklogItemResponse(unwrapApiResponse({ data }))
 }
 
+export async function updateBacklogItem(project, itemId, payload) {
+  const path = `/workspaces/${project.workspaceId}/teams/${project.teamId}/projects/${project.id}/backlog/items/${itemId}`
+  const body = {
+    title: payload.title?.trim(),
+    description: payload.description?.trim() || undefined,
+    type: payload.type || 'FEATURE',
+    priority: payload.priority || 'MEDIUM',
+    status: payload.status || undefined,
+    desiredDueDate: payload.desiredDueDate || undefined,
+  }
+  let data
+
+  try {
+    const response = await api.patch(path, body)
+    data = response.data
+  } catch (error) {
+    if (error?.response?.status !== 405) {
+      throw error
+    }
+    const response = await api.put(path, body)
+    data = response.data
+  }
+
+  return mapBacklogItemResponse(unwrapApiResponse({ data }))
+}
+
+export async function deleteBacklogItem(project, itemId) {
+  await api.delete(
+    `/workspaces/${project.workspaceId}/teams/${project.teamId}/projects/${project.id}/backlog/items/${itemId}`,
+  )
+  return itemId
+}
+
 export async function fetchBacklogItemTasks(project, itemId) {
   const { data } = await api.get(
     `/workspaces/${project.workspaceId}/teams/${project.teamId}/projects/${project.id}/backlog/items/${itemId}/tasks`,
@@ -366,6 +399,41 @@ export async function createBacklogItemTask(project, itemId, payload) {
     },
   )
   return mapTaskResponse(unwrapApiResponse({ data }))
+}
+
+export async function updateBacklogItemTask(project, itemId, taskId, payload) {
+  const path = `/workspaces/${project.workspaceId}/teams/${project.teamId}/projects/${project.id}/backlog/items/${itemId}/tasks/${taskId}`
+  const body = {
+    title: payload.title?.trim(),
+    description: payload.description?.trim() || undefined,
+    priority: payload.priority || 'MEDIUM',
+    status: payload.status || undefined,
+    assigneeMemberId: payload.assigneeMemberId
+      ? Number(payload.assigneeMemberId)
+      : undefined,
+    deadline: payload.deadline || undefined,
+  }
+  let data
+
+  try {
+    const response = await api.patch(path, body)
+    data = response.data
+  } catch (error) {
+    if (error?.response?.status !== 405) {
+      throw error
+    }
+    const response = await api.put(path, body)
+    data = response.data
+  }
+
+  return mapTaskResponse(unwrapApiResponse({ data }))
+}
+
+export async function deleteBacklogItemTask(project, itemId, taskId) {
+  await api.delete(
+    `/workspaces/${project.workspaceId}/teams/${project.teamId}/projects/${project.id}/backlog/items/${itemId}/tasks/${taskId}`,
+  )
+  return taskId
 }
 
 export async function fetchProjectAttachments(project) {
