@@ -164,6 +164,25 @@ export function mapTaskResponse(task) {
   }
 }
 
+export function mapSprintResponse(sprint) {
+  if (!sprint) return null
+
+  return {
+    id: String(sprint.id ?? sprint.sprintId),
+    projectId: sprint.projectId != null ? String(sprint.projectId) : '',
+    name: sprint.name ?? sprint.sprintName ?? '',
+    goal: sprint.goal ?? sprint.objective ?? '',
+    status: sprint.status ?? 'PLANNING',
+    startDate: sprint.startDate ?? null,
+    endDate: sprint.endDate ?? null,
+    totalTasks: Number(sprint.totalTasks ?? 0),
+    doneTasks: Number(sprint.doneTasks ?? 0),
+    completionPercent: Number(sprint.completionPercent ?? 0),
+    createdAt: sprint.createdAt ?? null,
+    updatedAt: sprint.updatedAt ?? null,
+  }
+}
+
 export function mapAttachmentResponse(attachment) {
   if (!attachment) return null
 

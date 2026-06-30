@@ -5,6 +5,7 @@ import {
   mapProjectDashboardResponse,
   mapProjectMemberResponse,
   mapProjectResponse,
+  mapSprintResponse,
   mapTaskResponse,
 } from '../utils/projectMappers'
 import {
@@ -434,6 +435,37 @@ export async function deleteBacklogItemTask(project, itemId, taskId) {
     `/workspaces/${project.workspaceId}/teams/${project.teamId}/projects/${project.id}/backlog/items/${itemId}/tasks/${taskId}`,
   )
   return taskId
+}
+
+export async function fetchProjectSprints(project, params = {}) {
+  const { data } = await api.get(
+    `/workspaces/${project.workspaceId}/teams/${project.teamId}/projects/${project.id}/sprints`,
+    {
+      params: {
+        page: params.page ?? 0,
+        size: params.size ?? 100,
+        status: params.status || undefined,
+      },
+    },
+  )
+
+  return extractPageItems(unwrapApiResponse({ data }))
+    .map(mapSprintResponse)
+    .filter(Boolean)
+}
+
+export async function createProjectSprint(project, payload) {
+  const { data } = await api.post(
+    `/workspaces/${project.workspaceId}/teams/${project.teamId}/projects/${project.id}/sprints`,
+    {
+      name: payload.name?.trim(),
+      goal: payload.goal?.trim() || undefined,
+      startDate: payload.startDate || undefined,
+      endDate: payload.endDate || undefined,
+    },
+  )
+
+  return mapSprintResponse(unwrapApiResponse({ data }))
 }
 
 export async function fetchProjectAttachments(project) {
