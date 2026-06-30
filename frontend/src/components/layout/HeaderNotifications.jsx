@@ -1,34 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bell } from 'lucide-react'
 
-const MOCK_NOTIFICATIONS = [
-  {
-    id: 'n1',
-    title: 'Task được giao mới',
-    message: 'Bạn được giao task "Thiết kế API auth"',
-    time: '5 phút trước',
-    unread: true,
-  },
-  {
-    id: 'n2',
-    title: 'Sprint sắp kết thúc',
-    message: 'Sprint 12 kết thúc trong 2 ngày',
-    time: '1 giờ trước',
-    unread: true,
-  },
-  {
-    id: 'n3',
-    title: 'Thành viên mới',
-    message: 'Hoàng Đức Anh đã tham gia dự án WMS',
-    time: 'Hôm qua',
-    unread: false,
-  },
-]
-
 export default function HeaderNotifications() {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
-  const unreadCount = MOCK_NOTIFICATIONS.filter((item) => item.unread).length
+  const notifications = []
+  const unreadCount = notifications.filter((item) => item.unread).length
 
   useEffect(() => {
     if (!open) return
@@ -70,22 +47,7 @@ export default function HeaderNotifications() {
             )}
           </div>
 
-          <ul className="header-notifications">
-            {MOCK_NOTIFICATIONS.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className={`header-notification${item.unread ? ' header-notification--unread' : ''}`}
-                >
-                  <span className="header-notification__title">{item.title}</span>
-                  <span className="header-notification__message">
-                    {item.message}
-                  </span>
-                  <span className="header-notification__time">{item.time}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <p className="header-menu__empty">Chưa có thông báo.</p>
         </div>
       )}
     </div>

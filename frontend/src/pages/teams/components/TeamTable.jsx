@@ -1,9 +1,9 @@
-import { Ban, Crown, Pencil, UserPlus } from 'lucide-react'
+import { Pencil } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import PermissionGate from '../../../components/common/PermissionGate'
 import UserAvatar from '../../../components/common/UserAvatar'
 import IconButton from '../../../components/ui/IconButton'
 import { PERMISSIONS } from '../../../constants/permissions'
-import { TEAM_STATUS } from '../../../constants/teams'
 import TeamStatusBadge from './TeamStatusBadge'
 
 const AVATAR_TONES = ['violet', 'amber', 'teal', 'rose', 'blue', 'slate']
@@ -22,13 +22,20 @@ function getInitials(name) {
     .join('')
 }
 
-export default function TeamTable({
-  teams,
-  onAssignLeader,
-  onAddMember,
-  onEdit,
-  onDisband,
-}) {
+export default function TeamTable({ teams, onEdit }) {
+  const navigate = useNavigate()
+
+  const openTeamDetail = (team) => {
+    navigate(`/teams/${team.id}`, { state: { workspaceId: team.workspaceId } })
+  }
+
+  const handleRowKeyDown = (event, team) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      openTeamDetail(team)
+    }
+  }
+
   return (
     <div className="team-table-wrap">
       <div className="team-table-scroll">
@@ -63,10 +70,17 @@ export default function TeamTable({
             {teams.map((team) => {
               const tone = getAvatarTone(team.id)
               const initials = getInitials(team.name) || team.code?.slice(0, 2) || '??'
-              const isActive = team.status === TEAM_STATUS.ACTIVE
 
               return (
-                <tr key={team.id}>
+                <tr
+                  key={team.id}
+                  className="team-table__row team-table__row--clickable"
+                  onClick={() => openTeamDetail(team)}
+                  onKeyDown={(event) => handleRowKeyDown(event, team)}
+                  tabIndex={0}
+                  role="link"
+                  aria-label={`Xem chi tiết phòng ban ${team.name}`}
+                >
                   <td>
                     <span
                       className={`team-table__avatar team-table__avatar--${tone}`}
@@ -104,32 +118,13 @@ export default function TeamTable({
                     <PermissionGate permission={PERMISSIONS.TEAM_MANAGE}>
                       <div className="team-table__action-group">
                         <IconButton
-                          label="Sửa thông tin"
-                          onClick={() => onEdit?.(team)}
+                          label="Chỉnh sửa"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onEdit?.(team)
+                          }}
                         >
                           <Pencil size={15} aria-hidden="true" />
-                        </IconButton>
-                        <IconButton
-                          label="Thêm nhân viên"
-                          onClick={() => onAddMember?.(team)}
-                          disabled={!isActive}
-                        >
-                          <UserPlus size={15} aria-hidden="true" />
-                        </IconButton>
-                        <IconButton
-                          label="Gán trưởng nhóm"
-                          onClick={() => onAssignLeader?.(team)}
-                          disabled={!isActive}
-                        >
-                          <Crown size={15} aria-hidden="true" />
-                        </IconButton>
-                        <IconButton
-                          label="Giải thể phòng ban"
-                          onClick={() => onDisband?.(team)}
-                          disabled={!isActive}
-                          className="icon-btn--danger"
-                        >
-                          <Ban size={15} aria-hidden="true" />
                         </IconButton>
                       </div>
                     </PermissionGate>

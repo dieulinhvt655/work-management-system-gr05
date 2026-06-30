@@ -6,6 +6,7 @@ import { ArrowLeft, Info } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { createUser } from '../../../api/usersApi'
 import { fetchCreatableRolesForAccountCreation } from '../../../api/rolesApi'
+import { fetchWorkspaces } from '../../../api/workspacesApi'
 import LoadingScreen from '../../../components/common/LoadingScreen'
 import Button from '../../../components/ui/Button'
 import SelectField from '../../../components/ui/SelectField'
@@ -17,6 +18,7 @@ import {
 } from '../../../constants/users'
 import { useAuth } from '../../../context/AuthContext'
 import { useIsWorkspaceOwner } from '../../../hooks/useIsWorkspaceOwner'
+import { useWorkspaceScope } from '../../../hooks/useWorkspaceScope'
 import PermissionRoute from '../../../routes/PermissionRoute'
 import { getErrorMessage } from '../../../utils/getErrorMessage'
 import { createUserSchema } from './createUserSchema'
@@ -27,6 +29,7 @@ export default function CreateUserPage() {
   const queryClient = useQueryClient()
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const isWorkspaceOwner = useIsWorkspaceOwner()
+  const { workspaceId: currentWorkspaceId } = useWorkspaceScope()
 
   const {
     data: roles = [],
@@ -41,10 +44,35 @@ export default function CreateUserPage() {
     staleTime: 60_000,
   })
 
+  const {
+    data: workspaces = [],
+    isLoading: workspacesLoading,
+  } = useQuery({
+    queryKey: ['admin', 'workspaces'],
+    queryFn: fetchWorkspaces,
+    enabled: isAuthenticated && !isWorkspaceOwner,
+    staleTime: 60_000,
+  })
+
+  // System Admin: Workspace option có thể chọn hoặc để trống
+  // Workspace Owner: Không có option, sử dụng currentWorkspaceId
+  const workspaceOptions = useMemo(() => {
+    return workspaces.map((ws) => ({
+      id: ws.id,
+      name: ws.name,
+      code: ws.code,
+    }))
+  }, [workspaces])
+
   const roleOptions = useMemo(
     () => filterCreatableRoles(roles, { isWorkspaceOwner }),
     [roles, isWorkspaceOwner],
   )
+
+  const currentWorkspace = useMemo(() => {
+    if (!isWorkspaceOwner || !currentWorkspaceId) return null
+    return workspaces.find((ws) => ws.id === currentWorkspaceId)
+  }, [isWorkspaceOwner, currentWorkspaceId, workspaces])
 
   const defaultRoleId = useMemo(() => {
     const workspaceMember = roleOptions.find(
@@ -66,6 +94,7 @@ export default function CreateUserPage() {
       username: '',
       phone: '',
       role: '',
+      workspaceId: isWorkspaceOwner ? currentWorkspaceId : '',
       status: USER_ACCOUNT_STATUS.ACTIVE,
     },
   })
@@ -85,18 +114,33 @@ export default function CreateUserPage() {
       await queryClient.invalidateQueries({
         queryKey: ['admin', 'users'],
       })
-      navigate('/admin/users', {
-        state: { toast: 'Tạo account thành công' },
-      })
+      if (isWorkspaceOwner) {
+        // Workspace Owner: Redirect tới danh sách members của workspace
+        navigate('/members', {
+          state: { toast: 'Tạo account và thêm vào workspace thành công' },
+        })
+      } else {
+        // System Admin: Redirect tới danh sách tất cả accounts
+        navigate('/admin/users', {
+          state: { toast: 'Tạo account thành công' },
+        })
+      }
     },
   })
 
   const onSubmit = (values) => {
-    createUserMutation.mutate({
+    const payload = {
       ...values,
       roleId: Number(values.role),
       phone: values.phone?.trim() || null,
-    })
+    }
+
+    // Workspace Owner: Tự động thêm currentWorkspaceId
+    if (isWorkspaceOwner) {
+      payload.workspaceId = currentWorkspaceId
+    }
+
+    createUserMutation.mutate(payload)
   }
 
   if (authLoading && !user) {
@@ -107,18 +151,37 @@ export default function CreateUserPage() {
     <PermissionRoute permission={PERMISSIONS.USER_MANAGE}>
       <div className="page users-page create-user-page">
         <header className="page__header create-user-page__header">
-          <Link to="/admin/users" className="create-user-page__back">
+          <Link
+            to={isWorkspaceOwner ? '/members' : '/admin/users'}
+            className="create-user-page__back"
+          >
             <ArrowLeft size={16} aria-hidden="true" />
-            Quay lại danh sách Account
+            {isWorkspaceOwner
+              ? 'Quay lại danh sách thành viên'
+              : 'Quay lại danh sách Account'}
           </Link>
         </header>
 
         <div className="create-user-page__intro">
           <h1>Tạo Account</h1>
-          <p>
-            Tạo tài khoản hệ thống độc lập. Gán account vào workspace thực hiện
-            riêng tại màn hình Add Accounts to Workspace.
-          </p>
+          {isWorkspaceOwner ? (
+            <>
+              <p>
+                Tạo tài khoản mới cho Workspace: <strong>{currentWorkspace?.name}</strong>
+              </p>
+              <p>
+                Account sẽ được tự động thêm vào workspace hiện tại với vai trò
+                bạn chọn.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                Tạo tài khoản hệ thống độc lập. Gán account vào workspace thực
+                hiện riêng tại màn hình Add Accounts to Workspace.
+              </p>
+            </>
+          )}
           <p className="create-user-page__helper">
             <Info size={14} aria-hidden="true" />
             Mã NV và mật khẩu ban đầu do hệ thống tự sinh — không cần nhập thủ công.
@@ -176,12 +239,46 @@ export default function CreateUserPage() {
               </div>
             </section>
 
+            {/* System Admin: Hiển thị dropdown Workspace */}
+            {!isWorkspaceOwner && (
+              <section className="user-form-section">
+                <h2 className="user-form-section__title">Workspace (tùy chọn)</h2>
+                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem' }}>
+                  Để trống để tạo account global, hoặc chọn workspace để gán
+                  trực tiếp.
+                </p>
+                <div className="user-form-section__grid">
+                  <SelectField
+                    id="create-workspaceId"
+                    label="Workspace"
+                    disabled={workspacesLoading}
+                    {...register('workspaceId')}
+                  >
+                    <option value="">
+                      {workspacesLoading
+                        ? 'Đang tải workspace...'
+                        : 'Không chọn (Global)'}
+                    </option>
+                    {workspaceOptions.map((ws) => (
+                      <option key={ws.id} value={ws.id}>
+                        {ws.name} ({ws.code})
+                      </option>
+                    ))}
+                  </SelectField>
+                </div>
+              </section>
+            )}
+
             <section className="user-form-section">
-              <h2 className="user-form-section__title">Vai trò & trạng thái hệ thống</h2>
+              <h2 className="user-form-section__title">Vai trò & trạng thái</h2>
               <div className="user-form-section__grid">
                 <SelectField
                   id="create-role"
-                  label="Vai trò hệ thống"
+                  label={
+                    isWorkspaceOwner
+                      ? 'Vai trò trong Workspace'
+                      : 'Vai trò hệ thống'
+                  }
                   error={errors.role?.message}
                   disabled={rolesLoading}
                   {...register('role')}
@@ -231,7 +328,10 @@ export default function CreateUserPage() {
             </section>
 
             <div className="create-user-form__actions">
-              <Link to="/admin/users" className="btn btn--ghost">
+              <Link
+                to={isWorkspaceOwner ? '/members' : '/admin/users'}
+                className="btn btn--ghost"
+              >
                 Hủy
               </Link>
               <Button
@@ -239,7 +339,11 @@ export default function CreateUserPage() {
                 variant="primary"
                 disabled={createUserMutation.isPending}
               >
-                {createUserMutation.isPending ? 'Đang tạo...' : 'Tạo Account'}
+                {createUserMutation.isPending
+                  ? 'Đang tạo...'
+                  : isWorkspaceOwner
+                    ? 'Tạo & Thêm vào Workspace'
+                    : 'Tạo Account'}
               </Button>
             </div>
           </form>

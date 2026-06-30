@@ -12,7 +12,6 @@ export function filterMembers(members, filters) {
         member.fullName,
         member.email,
         member.employeeCode,
-        member.position,
         member.teamName,
       ]
         .filter(Boolean)
@@ -25,8 +24,9 @@ export function filterMembers(members, filters) {
         : member.teamId === filters.teamId)
 
     const matchesStatus =
-      filters.status === FILTER_ALL ||
-      member.organizationStatus === filters.status
+      filters.status === FILTER_ALL
+        ? member.organizationStatus === MEMBER_ORG_STATUS.ACTIVE
+        : member.organizationStatus === filters.status
 
     const hasProject = Boolean(member.currentProject ?? member.projectCount)
 

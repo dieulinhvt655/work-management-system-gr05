@@ -180,14 +180,14 @@
 
 .member-table {
   width: 100%;
-  min-width: 980px;
+  min-width: 1060px;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.8125rem;
 }
 
-.member-table__col-avatar {
+.member-table__col-index {
   width: 3rem;
 }
 
@@ -200,11 +200,7 @@
 }
 
 .member-table__col-team {
-  width: 15%;
-}
-
-.member-table__col-position {
-  width: 13%;
+  width: 18%;
 }
 
 .member-table__col-role {
@@ -224,7 +220,7 @@
 }
 
 .member-table__col-actions {
-  width: 3.25rem;
+  width: 7.5rem;
 }
 
 .member-table thead th {
@@ -238,20 +234,25 @@
   color: #94a3b8;
 }
 
-.member-table thead th:first-child,
-.member-table tbody td:first-child {
-  padding-left: 1.25rem;
-}
-
-.member-table thead th:last-child,
-.member-table tbody td:last-child {
-  padding-right: 1.25rem;
+.member-table thead th:first-child {
+  text-align: center;
+  padding-left: 0.75rem;
+  padding-right: 0.5rem;
 }
 
 .member-table tbody td {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #f8fafc;
   vertical-align: middle;
+}
+
+.member-table__index {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: #94a3b8;
+  font-weight: 500;
+  padding-left: 0.75rem;
+  padding-right: 0.5rem;
 }
 
 .member-table__row {
@@ -579,7 +580,24 @@
 }
 
 .member-table__actions-cell {
-  text-align: right;
+  text-align: left;
+}
+
+.member-table__action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.member-table__action-group .icon-btn {
+  flex: 0 0 1.75rem;
+}
+
+.member-table__action-group .icon-btn--danger:hover:not(:disabled) {
+  color: var(--color-danger);
+  background: #fef2f2;
 }
 
 .member-status {
@@ -764,8 +782,18 @@
   color: var(--color-text-muted);
 }
 
-.member-detail-page__edit-btn {
+.member-detail-page__actions {
+  display: flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  margin-left: auto;
+}
+
+.member-detail-page__action-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .member-detail-page__grid {
@@ -949,6 +977,12 @@
 @media (max-width: 640px) {
   .member-detail-page__hero {
     flex-direction: column;
+  }
+
+  .member-detail-page__actions {
+    justify-content: flex-start;
+    width: 100%;
+    margin-left: 0;
   }
 
   .member-detail-dl__row {

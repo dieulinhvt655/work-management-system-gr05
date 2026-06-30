@@ -13,6 +13,7 @@ import { fetchRoles } from '../../../api/rolesApi'
 import LoadingScreen from '../../../components/common/LoadingScreen'
 import PermissionGate from '../../../components/common/PermissionGate'
 import Toast from '../../../components/common/Toast'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import { PERMISSIONS } from '../../../constants/permissions'
 import { useAuth } from '../../../context/AuthContext'
 import { USER_ACCOUNT_STATUS } from '../../../constants/users'
@@ -44,6 +45,7 @@ export default function UsersListPage() {
   const [filters, setFilters] = useState(INITIAL_FILTERS)
   const [editUser, setEditUser] = useState(null)
   const [roleUser, setRoleUser] = useState(null)
+  const [lockUser, setLockUser] = useState(null)
   const [actionError, setActionError] = useState('')
   const [toastMessage, setToastMessage] = useState('')
 
@@ -59,7 +61,7 @@ export default function UsersListPage() {
       keyword: filters.search.trim() || undefined,
       status: filters.status
         ? mapFrontendStatusToBackend(filters.status)
-        : undefined,
+        : mapFrontendStatusToBackend(USER_ACCOUNT_STATUS.ACTIVE),
     }),
     [filters.search, filters.status],
   )
@@ -128,9 +130,14 @@ export default function UsersListPage() {
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ userId, status }) => updateUserStatus(userId, status),
-    onSuccess: invalidateUsers,
+    onSuccess: () => {
+      setActionError('')
+      setLockUser(null)
+      setToastMessage('Đã cập nhật trạng thái account.')
+      invalidateUsers()
+    },
     onError: (error) => {
-      window.alert(getErrorMessage(error, 'Không thể cập nhật trạng thái.'))
+      setActionError(getErrorMessage(error, 'Không thể cập nhật trạng thái.'))
     },
   })
 
@@ -151,21 +158,8 @@ export default function UsersListPage() {
   }
 
   const handleToggleLock = (user) => {
-    const nextStatus =
-      user.status === USER_ACCOUNT_STATUS.LOCKED
-        ? USER_ACCOUNT_STATUS.ACTIVE
-        : USER_ACCOUNT_STATUS.LOCKED
-
-    const label =
-      nextStatus === USER_ACCOUNT_STATUS.LOCKED ? 'khóa' : 'mở khóa'
-
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn ${label} tài khoản "${user.fullName}"?`,
-    )
-
-    if (!confirmed) return
-
-    updateStatusMutation.mutate({ userId: user.id, status: nextStatus })
+    setActionError('')
+    setLockUser(user)
   }
 
   const openDetail = (user) => {
@@ -266,6 +260,42 @@ export default function UsersListPage() {
             onSave={handleChangeRole}
             isSaving={updateRoleMutation.isPending}
             saveError={actionError}
+          />
+        )}
+
+        {lockUser && (
+          <ConfirmDialog
+            title={
+              lockUser.status === USER_ACCOUNT_STATUS.INACTIVE
+                ? 'Mở khóa tài khoản?'
+                : 'Khóa tài khoản?'
+            }
+            description={`Bạn có chắc muốn ${
+              lockUser.status === USER_ACCOUNT_STATUS.INACTIVE ? 'mở khóa' : 'khóa'
+            } tài khoản ${lockUser.fullName}?`}
+            confirmLabel={
+              lockUser.status === USER_ACCOUNT_STATUS.INACTIVE
+                ? 'Mở khóa'
+                : 'Khóa tài khoản'
+            }
+            tone={lockUser.status === USER_ACCOUNT_STATUS.INACTIVE ? 'primary' : 'danger'}
+            isSaving={updateStatusMutation.isPending}
+            error={actionError}
+            onCancel={() => {
+              if (!updateStatusMutation.isPending) {
+                setLockUser(null)
+                setActionError('')
+              }
+            }}
+            onConfirm={() =>
+              updateStatusMutation.mutate({
+                userId: lockUser.id,
+                status:
+                  lockUser.status === USER_ACCOUNT_STATUS.INACTIVE
+                    ? USER_ACCOUNT_STATUS.ACTIVE
+                    : USER_ACCOUNT_STATUS.INACTIVE,
+              })
+            }
           />
         )}
       </div>

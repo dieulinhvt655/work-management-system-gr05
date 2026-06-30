@@ -16,6 +16,7 @@ import { USER_STATUS_LABELS } from '../../constants/users'
 import PermissionRoute from '../../routes/PermissionRoute'
 import { getErrorMessage } from '../../utils/getErrorMessage'
 import ChangePasswordModal from './components/ChangePasswordModal'
+import ProfileAvatarUpload from './components/ProfileAvatarUpload'
 import { profileSchema } from './profileSchema'
 
 const PROFILE_QUERY_KEY = ['profile', 'me']
@@ -34,10 +35,20 @@ function formatDateTime(value) {
 
 function toFormValues(profile) {
   return {
-    phone: profile.phone ?? '',
+    phone: String(profile.phone ?? ''),
     bio: profile.bio ?? '',
-    personalLink: profile.personalLink ?? '',
+    avatarUrl: profile.avatarUrl ?? '',
   }
+}
+
+function isProfileDirty(formValues, profile) {
+  if (!formValues || !profile) return false
+
+  return (
+    formValues.phone.trim() !== String(profile.phone ?? '').trim() ||
+    formValues.bio.trim() !== String(profile.bio ?? '').trim() ||
+    formValues.avatarUrl !== (profile.avatarUrl ?? '')
+  )
 }
 
 export default function ProfilePage() {
@@ -62,12 +73,19 @@ export default function ProfilePage() {
 
   const updateMutation = useMutation({
     mutationFn: updateProfile,
-    onSuccess: (nextProfile) => {
+    onSuccess: (nextProfile, variables) => {
+      const mergedProfile = {
+        ...nextProfile,
+        phone: nextProfile.phone ?? variables.phone ?? null,
+        bio: nextProfile.bio ?? variables.bio ?? '',
+        avatarUrl: nextProfile.avatarUrl ?? variables.avatarUrl ?? '',
+      }
+
       setFormError('')
       setFieldErrors({})
-      setFormValues(toFormValues(nextProfile))
+      setFormValues(toFormValues(mergedProfile))
       setToastMessage('Hồ sơ cá nhân đã được cập nhật.')
-      queryClient.setQueryData(PROFILE_QUERY_KEY, nextProfile)
+      queryClient.setQueryData(PROFILE_QUERY_KEY, mergedProfile)
     },
     onError: (error) => {
       setFormError(getErrorMessage(error, 'Không thể cập nhật hồ sơ.'))
@@ -104,6 +122,11 @@ export default function ProfilePage() {
     event.preventDefault()
     if (!formValues) return
 
+    if (!isProfileDirty(formValues, profile)) {
+      setToastMessage('Không có thay đổi để lưu.')
+      return
+    }
+
     const result = profileSchema.safeParse(formValues)
     if (!result.success) {
       const nextErrors = {}
@@ -120,7 +143,7 @@ export default function ProfilePage() {
     updateMutation.mutate({
       phone: formValues.phone.trim(),
       bio: formValues.bio.trim(),
-      personalLink: formValues.personalLink.trim(),
+      avatarUrl: formValues.avatarUrl,
     })
   }
 
@@ -128,10 +151,7 @@ export default function ProfilePage() {
     return <LoadingScreen />
   }
 
-  const isDirty =
-    formValues.phone !== (profile.phone ?? '') ||
-    formValues.bio !== (profile.bio ?? '') ||
-    formValues.personalLink !== (profile.personalLink ?? '')
+  const isDirty = isProfileDirty(formValues, profile)
 
   return (
     <PermissionRoute permission={PERMISSIONS.PROFILE_READ}>
@@ -153,8 +173,12 @@ export default function ProfilePage() {
         <div className="profile-page__layout">
           <section className="profile-card profile-card--readonly">
             <div className="profile-card__hero">
-              <UserAvatar fullName={profile.fullName} size="lg" />
-              <div>
+              <UserAvatar
+                fullName={profile.fullName}
+                avatarUrl={profile.avatarUrl}
+                size="lg"
+              />
+              <div className="profile-card__hero-text">
                 <h2 className="profile-card__name">{profile.fullName}</h2>
                 <p className="profile-card__email">{profile.email}</p>
               </div>
@@ -170,10 +194,6 @@ export default function ProfilePage() {
                 <dd>
                   <code>{profile.employeeCode}</code>
                 </dd>
-              </div>
-              <div className="profile-readonly__row">
-                <dt>Workspace</dt>
-                <dd>{profile.workspaceName}</dd>
               </div>
               <div className="profile-readonly__row">
                 <dt>Team / Department</dt>
@@ -199,98 +219,101 @@ export default function ProfilePage() {
           </section>
 
           <div className="profile-page__main">
-            <form className="profile-card" onSubmit={handleSubmit} noValidate>
-              <div className="profile-card__head">
-                <h2 className="profile-card__title">Thông tin có thể chỉnh sửa</h2>
-                <p className="profile-card__desc">
-                  Cập nhật số điện thoại, giới thiệu và liên kết cá nhân.
-                </p>
-              </div>
+            <form className="profile-card profile-card--combined" onSubmit={handleSubmit} noValidate>
+              <section className="profile-section">
+                <div className="profile-card__head">
+                  <h2 className="profile-card__title">Thông tin có thể chỉnh sửa</h2>
+                  <p className="profile-card__desc">
+                    Cập nhật ảnh đại diện, số điện thoại và mô tả cá nhân.
+                  </p>
+                </div>
 
-              {formError && (
-                <p className="profile-form__error" role="alert">
-                  {formError}
-                </p>
-              )}
-
-              <TextField
-                id="profile-phone"
-                label="Số điện thoại"
-                value={formValues.phone}
-                onChange={(event) => setField('phone', event.target.value)}
-                error={fieldErrors.phone}
-                placeholder="0901234567"
-              />
-
-              <div className="field">
-                <label className="field__label" htmlFor="profile-bio">
-                  Giới thiệu
-                </label>
-                <textarea
-                  id="profile-bio"
-                  className={`field__input profile-form__textarea${
-                    fieldErrors.bio ? ' field__input--error' : ''
-                  }`}
-                  value={formValues.bio}
-                  onChange={(event) => setField('bio', event.target.value)}
-                  rows={4}
-                  placeholder="Mô tả ngắn về bạn"
-                />
-                {fieldErrors.bio && (
-                  <p className="field__error">{fieldErrors.bio}</p>
+                {formError && (
+                  <p className="profile-form__error" role="alert">
+                    {formError}
+                  </p>
                 )}
-              </div>
 
-              <TextField
-                id="profile-link"
-                label="Liên kết cá nhân"
-                value={formValues.personalLink}
-                onChange={(event) => setField('personalLink', event.target.value)}
-                error={fieldErrors.personalLink}
-                placeholder="https://linkedin.com/in/username"
-              />
+                <div className="profile-editable__row">
+                  <ProfileAvatarUpload
+                    fullName={profile.fullName}
+                    value={formValues.avatarUrl}
+                    onChange={(value) => setField('avatarUrl', value)}
+                    error={fieldErrors.avatarUrl}
+                    compact
+                  />
 
-              <div className="profile-card__actions">
+                  <TextField
+                    id="profile-phone"
+                    label="Số điện thoại"
+                    value={formValues.phone}
+                    onChange={(event) => setField('phone', event.target.value)}
+                    error={fieldErrors.phone}
+                    placeholder="0901234567"
+                  />
+                </div>
+
+                <div className="field profile-form__description">
+                  <label className="field__label" htmlFor="profile-bio">
+                    Mô tả
+                  </label>
+                  <textarea
+                    id="profile-bio"
+                    className={`field__input profile-form__textarea${
+                      fieldErrors.bio ? ' field__input--error' : ''
+                    }`}
+                    value={formValues.bio}
+                    onChange={(event) => setField('bio', event.target.value)}
+                    rows={4}
+                    placeholder="Mô tả ngắn về bạn"
+                  />
+                  {fieldErrors.bio && (
+                    <p className="field__error">{fieldErrors.bio}</p>
+                  )}
+                </div>
+
+                <div className="profile-card__actions">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleCancel}
+                    disabled={!isDirty || updateMutation.isPending}
+                  >
+                    <Undo2 size={16} aria-hidden="true" />
+                    Hủy
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={updateMutation.isPending}
+                  >
+                    <Save size={16} aria-hidden="true" />
+                    {updateMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  </Button>
+                </div>
+              </section>
+
+              <section className="profile-section profile-section--security">
+                <div className="profile-section__security-copy">
+                  <h2 className="profile-card__title">Bảo mật</h2>
+                  <p className="profile-card__desc">
+                    Đổi mật khẩu đăng nhập định kỳ để bảo vệ tài khoản.
+                  </p>
+                </div>
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={handleCancel}
-                  disabled={!isDirty || updateMutation.isPending}
+                  className="profile-card__security-btn"
+                  onClick={() => {
+                    setPasswordError('')
+                    setShowPasswordModal(true)
+                  }}
                 >
-                  <Undo2 size={16} aria-hidden="true" />
-                  Hủy
+                  <KeyRound size={16} aria-hidden="true" />
+                  Đổi mật khẩu
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={!isDirty || updateMutation.isPending}
-                >
-                  <Save size={16} aria-hidden="true" />
-                  {updateMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
-                </Button>
-              </div>
+              </section>
             </form>
-
-            <section className="profile-card profile-card--security">
-              <div className="profile-card__head">
-                <h2 className="profile-card__title">Bảo mật</h2>
-                <p className="profile-card__desc">
-                  Đổi mật khẩu đăng nhập định kỳ để bảo vệ tài khoản.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                className="profile-card__security-btn"
-                onClick={() => {
-                  setPasswordError('')
-                  setShowPasswordModal(true)
-                }}
-              >
-                <KeyRound size={16} aria-hidden="true" />
-                Đổi mật khẩu
-              </Button>
-            </section>
           </div>
         </div>
 

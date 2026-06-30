@@ -1,4 +1,3 @@
-import { MOCK_ROLE_LABELS } from '../../../../constants/roles'
 import Modal from '../../../../components/ui/Modal'
 import UserAvatar from '../../../../components/common/UserAvatar'
 import { USER_ROLE_LABELS } from '../../../../constants/users'
@@ -39,7 +38,7 @@ export default function UserDetailModal({ user, onClose }) {
           </DetailRow>
           <DetailRow label="Phòng ban / Nhóm">{user.departmentName ?? '—'}</DetailRow>
           <DetailRow label="Vai trò">
-            {USER_ROLE_LABELS[user.role] ?? MOCK_ROLE_LABELS[user.role] ?? user.role}
+            {user.roleName ?? USER_ROLE_LABELS[user.role] ?? user.role}
           </DetailRow>
           <DetailRow label="Trạng thái">
             <UserStatusBadge status={user.status} />

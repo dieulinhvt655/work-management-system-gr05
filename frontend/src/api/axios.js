@@ -15,6 +15,30 @@ const api = axios.create({
   },
 })
 
+const PUBLIC_AUTH_PATHS = [
+  '/auth/login',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+]
+
+function getRequestPath(config = {}) {
+  const url = config.url ?? ''
+  if (!url) return ''
+
+  try {
+    const baseURL =
+      config.baseURL ?? API_BASE_URL ?? window.location.origin
+    return new URL(url, baseURL).pathname
+  } catch {
+    return url.split('?')[0]
+  }
+}
+
+function isPublicAuthRequest(config = {}) {
+  const path = getRequestPath(config)
+  return PUBLIC_AUTH_PATHS.some((authPath) => path.endsWith(authPath))
+}
+
 export function getAccessToken() {
   return localStorage.getItem(AUTH_TOKEN_KEY)
 }
@@ -83,7 +107,9 @@ export function clearAuthStorage() {
 }
 
 api.interceptors.request.use((config) => {
-  applyAuthHeader(config)
+  if (!isPublicAuthRequest(config)) {
+    applyAuthHeader(config)
+  }
 
   if (IS_NGROK_API || config.baseURL?.includes('ngrok')) {
     if (typeof config.headers?.set === 'function') {
@@ -116,7 +142,12 @@ api.interceptors.response.use(
     const originalRequest = error.config
     const status = error.response?.status
 
-    if (status !== 401 || originalRequest._retry) {
+    if (
+      status !== 401 ||
+      !originalRequest ||
+      originalRequest._retry ||
+      isPublicAuthRequest(originalRequest)
+    ) {
       return Promise.reject(error)
     }
 

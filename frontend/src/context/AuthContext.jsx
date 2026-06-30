@@ -2,10 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { clearAuthStorage, setAuthTokens } from '../api/axios'
 import { clearRolesCache } from '../api/rolesApi'
 import { login as loginRequest, fetchCurrentUser, logoutApi } from '../api/authService'
-import { isMockSession } from '../api/mockAuth'
 import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from '../constants/auth'
-import { MOCK_ACCESS_TOKEN, USE_MOCK_AUTH } from '../constants/config'
-import { createMockUser } from '../constants/mock/rolePermissions'
 
 const AuthContext = createContext(null)
 
@@ -16,7 +13,7 @@ export function AuthProvider({ children }) {
   })
   const [isLoading, setIsLoading] = useState(() => {
     const token = localStorage.getItem(AUTH_TOKEN_KEY)
-    if (!token || isMockSession(token)) return false
+    if (!token) return false
     // Có token + user cache → không chặn UI chờ refresh session.
     return !localStorage.getItem(AUTH_USER_KEY)
   })
@@ -54,11 +51,6 @@ export function AuthProvider({ children }) {
       return
     }
 
-    if (isMockSession(token)) {
-      setIsLoading(false)
-      return
-    }
-
     const storedUser = localStorage.getItem(AUTH_USER_KEY)
     if (storedUser) {
       // Hiển thị UI ngay với session cache; refresh profile ở background.
@@ -76,8 +68,8 @@ export function AuthProvider({ children }) {
   }, [persistUser, restoreSession])
 
   const login = useCallback(
-    async ({ email, password, mockRole }) => {
-      const payload = await loginRequest({ email, password, mockRole })
+    async ({ email, password }) => {
+      const payload = await loginRequest({ email, password })
 
       setAuthTokens({
         accessToken: payload.accessToken,
@@ -94,30 +86,11 @@ export function AuthProvider({ children }) {
     [persistUser, restoreSession],
   )
 
-  const switchMockRole = useCallback(
-    (mockRole) => {
-      if (!USE_MOCK_AUTH) return
-
-      const nextUser = createMockUser(mockRole, user?.email)
-      setAuthTokens({
-        accessToken: MOCK_ACCESS_TOKEN,
-        refreshToken: 'mock-refresh-token',
-      })
-      persistUser(nextUser)
-      return nextUser
-    },
-    [persistUser, user?.email],
-  )
-
   const logout = useCallback(async () => {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY)
-
-    if (!isMockSession(token)) {
-      try {
-        await logoutApi()
-      } catch {
-        // Ignore logout errors and clear local session anyway.
-      }
+    try {
+      await logoutApi()
+    } catch {
+      // Ignore logout errors and clear local session anyway.
     }
 
     clearAuthStorage()
@@ -133,10 +106,8 @@ export function AuthProvider({ children }) {
       isLoading,
       login,
       logout,
-      switchMockRole,
-      isMockAuthEnabled: USE_MOCK_AUTH,
     }),
-    [user, isLoading, login, logout, switchMockRole],
+    [user, isLoading, login, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

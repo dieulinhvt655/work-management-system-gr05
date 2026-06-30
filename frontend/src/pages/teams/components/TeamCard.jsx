@@ -22,7 +22,6 @@ function getInitials(name) {
 
 export default function TeamCard({
   team,
-  onAssignLeader,
   onAddMember,
 }) {
   const tone = getAvatarTone(team.id)
@@ -121,14 +120,6 @@ export default function TeamCard({
             >
               <UserPlus size={14} aria-hidden="true" />
               Thêm NV
-            </button>
-            <button
-              type="button"
-              className="team-card__action-btn team-card__action-btn--primary"
-              onClick={() => onAssignLeader?.(team)}
-            >
-              <Crown size={14} aria-hidden="true" />
-              Gán TL
             </button>
           </div>
         </PermissionGate>

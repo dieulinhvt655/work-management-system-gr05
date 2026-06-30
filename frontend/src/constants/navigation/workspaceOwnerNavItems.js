@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Shield,
   UserCog,
-  UserSquare2,
   Users,
 } from 'lucide-react'
 import { PERMISSIONS } from '../permissions'
@@ -56,34 +55,21 @@ export const WORKSPACE_OWNER_NAV_ITEMS = [
     ],
   },
   {
-    id: 'members',
-    label: 'Members',
-    icon: UserSquare2,
-    to: '/members',
-    permission: PERMISSIONS.MEMBER_READ,
-  },
-  {
     id: 'account-management',
     label: 'Account Management',
     icon: UserCog,
     children: [
       {
-        id: 'accounts-list',
-        label: 'Danh sách Account',
-        to: '/admin/users',
-        permission: PERMISSIONS.USER_READ,
+        id: 'accounts-workspace-list',
+        label: 'Danh sách Members',
+        to: '/members',
+        permission: PERMISSIONS.MEMBER_READ,
       },
       {
-        id: 'accounts-create',
-        label: 'Tạo Account',
+        id: 'accounts-workspace-create',
+        label: 'Tạo Account mới',
         to: '/admin/users/create',
         permission: PERMISSIONS.USER_MANAGE,
-      },
-      {
-        id: 'accounts-status',
-        label: 'Trạng thái Account',
-        to: '/admin/users/status',
-        permission: PERMISSIONS.USER_READ,
       },
     ],
   },

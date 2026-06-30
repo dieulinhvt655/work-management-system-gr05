@@ -1,8 +1,5 @@
-import { Pencil } from 'lucide-react'
-import PermissionGate from '../../../components/common/PermissionGate'
-import UserAvatar from '../../../components/common/UserAvatar'
+import { Eye, Lock, Pencil } from 'lucide-react'
 import IconButton from '../../../components/ui/IconButton'
-import { PERMISSIONS } from '../../../constants/permissions'
 import { USER_ROLE_LABELS } from '../../../constants/users'
 import MemberOrgStatusBadge from './MemberOrgStatusBadge'
 import MemberTableFooter from './MemberTableFooter'
@@ -22,6 +19,7 @@ export default function MemberTable({
   selectedMemberId,
   onSelect,
   onEdit,
+  onInactive,
   page,
   pageSize,
   totalCount,
@@ -33,11 +31,10 @@ export default function MemberTable({
       <div className="member-table-scroll">
         <table className="member-table">
           <colgroup>
-            <col className="member-table__col-avatar" />
+            <col className="member-table__col-index" />
             <col className="member-table__col-member" />
             <col className="member-table__col-code" />
             <col className="member-table__col-team" />
-            <col className="member-table__col-position" />
             <col className="member-table__col-role" />
             <col className="member-table__col-status" />
             <col className="member-table__col-updated" />
@@ -45,24 +42,20 @@ export default function MemberTable({
           </colgroup>
           <thead>
             <tr>
-              <th scope="col">
-                <span className="sr-only">Avatar</span>
-              </th>
+              <th scope="col">STT</th>
               <th scope="col">Thành viên</th>
               <th scope="col">Mã NV</th>
-              <th scope="col">Team / Department</th>
-              <th scope="col">Vị trí</th>
+              <th scope="col">Phòng ban</th>
               <th scope="col">Vai trò</th>
               <th scope="col">Trạng thái</th>
               <th scope="col">Cập nhật</th>
-              <th scope="col">
-                <span className="sr-only">Actions</span>
-              </th>
+              <th scope="col">Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            {members.map((member) => {
+            {members.map((member, index) => {
               const isSelected = selectedMemberId === member.id
+              const rowNumber = (page - 1) * pageSize + index + 1
 
               return (
                 <tr
@@ -82,12 +75,7 @@ export default function MemberTable({
                   aria-pressed={isSelected}
                   aria-label={`Xem chi tiết ${member.fullName}`}
                 >
-                  <td>
-                    <UserAvatar
-                      fullName={member.fullName}
-                      className="user-avatar--table"
-                    />
-                  </td>
+                  <td className="member-table__index">{rowNumber}</td>
                   <td>
                     <div className="member-table__identity">
                       <span
@@ -110,9 +98,6 @@ export default function MemberTable({
                   <td className="member-table__truncate" title={member.teamName}>
                     {member.teamName}
                   </td>
-                  <td className="member-table__truncate" title={member.position}>
-                    {member.position}
-                  </td>
                   <td
                     className="member-table__truncate"
                     title={USER_ROLE_LABELS[member.role]}
@@ -126,9 +111,18 @@ export default function MemberTable({
                     {formatDate(member.updatedAt)}
                   </td>
                   <td className="member-table__actions-cell">
-                    <PermissionGate permission={PERMISSIONS.MEMBER_MANAGE}>
+                    <div className="member-table__action-group">
                       <IconButton
-                        label="Cập nhật thông tin tổ chức"
+                        label="Xem chi tiết"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onSelect(member)
+                        }}
+                      >
+                        <Eye size={15} aria-hidden="true" />
+                      </IconButton>
+                      <IconButton
+                        label="Chỉnh sửa"
                         onClick={(event) => {
                           event.stopPropagation()
                           onEdit(member)
@@ -136,7 +130,17 @@ export default function MemberTable({
                       >
                         <Pencil size={15} aria-hidden="true" />
                       </IconButton>
-                    </PermissionGate>
+                      <IconButton
+                        label="Khóa tài khoản"
+                        variant="danger"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onInactive(member)
+                        }}
+                      >
+                        <Lock size={15} aria-hidden="true" />
+                      </IconButton>
+                    </div>
                   </td>
                 </tr>
               )

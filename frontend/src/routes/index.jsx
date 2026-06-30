@@ -24,6 +24,7 @@ import UserRolesTab from '../pages/admin/users/detail/UserRolesTab'
 import UserAccountStatusTab from '../pages/admin/users/detail/UserAccountStatusTab'
 import UserActivityTab from '../pages/admin/users/detail/UserActivityTab'
 import ProjectsListPage from '../pages/projects/ProjectsListPage'
+import CreateProjectPage from '../pages/projects/CreateProjectPage'
 import ProjectIndexRedirect from '../pages/projects/ProjectIndexRedirect'
 import ProjectLayout from '../components/layout/ProjectLayout'
 import {
@@ -39,6 +40,7 @@ import RolesListPage from '../pages/admin/roles/RolesListPage'
 import TeamsListPage from '../pages/teams/TeamsListPage'
 import CreateTeamPage from '../pages/teams/CreateTeamPage'
 import AssignMembersToTeamPage from '../pages/teams/AssignMembersToTeamPage'
+import TeamDetailPage from '../pages/teams/TeamDetailPage'
 import MembersListPage from '../pages/members/MembersListPage'
 import MemberDetailPage from '../pages/members/MemberDetailPage'
 import ProfilePage from '../pages/profile/ProfilePage'
@@ -180,6 +182,7 @@ export default function AppRoutes() {
             path="/teams/assign-members"
             element={<AssignMembersToTeamPage />}
           />
+          <Route path="/teams/:teamId" element={<TeamDetailPage />} />
 
           <Route path="/members" element={<MembersListPage />} />
           <Route path="/members/:memberId" element={<MemberDetailPage />} />
@@ -217,9 +220,7 @@ export default function AppRoutes() {
           <Route path="/projects" element={<ProjectsListPage />} />
           <Route
             path="/projects/create"
-            element={
-              <ProtectedPage path="/projects/create" title="Create Project" />
-            }
+            element={<CreateProjectPage />}
           />
           <Route
             path="/projects/activity"

@@ -6,16 +6,8 @@ export const profileSchema = z.object({
     .max(20, 'Số điện thoại tối đa 20 ký tự')
     .optional()
     .or(z.literal('')),
-  bio: z.string().max(500, 'Giới thiệu tối đa 500 ký tự').optional().or(z.literal('')),
-  personalLink: z
-    .string()
-    .max(255, 'Liên kết tối đa 255 ký tự')
-    .optional()
-    .or(z.literal(''))
-    .refine(
-      (value) => !value || /^https?:\/\/.+/i.test(value),
-      'Liên kết phải bắt đầu bằng http:// hoặc https://',
-    ),
+  bio: z.string().max(500, 'Mô tả tối đa 500 ký tự').optional().or(z.literal('')),
+  avatarUrl: z.string().optional().or(z.literal('')),
 })
 
 export const changePasswordSchema = z

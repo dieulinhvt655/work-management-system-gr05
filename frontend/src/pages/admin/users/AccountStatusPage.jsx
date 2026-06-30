@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { fetchUsers, updateUserStatus } from '../../../api/usersApi'
 import LoadingScreen from '../../../components/common/LoadingScreen'
 import Toast from '../../../components/common/Toast'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import { PERMISSIONS } from '../../../constants/permissions'
 import { useAuth } from '../../../context/AuthContext'
 import {
@@ -26,7 +27,9 @@ export default function AccountStatusPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { isAuthenticated, isLoading: authLoading } = useAuth()
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState(USER_ACCOUNT_STATUS.INACTIVE)
+  const [lockUser, setLockUser] = useState(null)
+  const [actionError, setActionError] = useState('')
   const [toastMessage, setToastMessage] = useState('')
 
   const { data: users = [], isLoading } = useQuery({
@@ -50,30 +53,19 @@ export default function AccountStatusPage() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ userId, status }) => updateUserStatus(userId, status),
     onSuccess: () => {
+      setActionError('')
+      setLockUser(null)
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
       setToastMessage('Đã cập nhật trạng thái account.')
     },
     onError: (error) => {
-      window.alert(getErrorMessage(error, 'Không thể cập nhật trạng thái.'))
+      setActionError(getErrorMessage(error, 'Không thể cập nhật trạng thái.'))
     },
   })
 
   const handleToggleLock = (user) => {
-    const nextStatus =
-      user.status === USER_ACCOUNT_STATUS.LOCKED
-        ? USER_ACCOUNT_STATUS.ACTIVE
-        : USER_ACCOUNT_STATUS.LOCKED
-
-    const label =
-      nextStatus === USER_ACCOUNT_STATUS.LOCKED ? 'khóa' : 'mở khóa'
-
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn ${label} tài khoản "${user.fullName}"?`,
-    )
-
-    if (!confirmed) return
-
-    updateStatusMutation.mutate({ userId: user.id, status: nextStatus })
+    setActionError('')
+    setLockUser(user)
   }
 
   if (authLoading || isLoading) {
@@ -144,6 +136,42 @@ export default function AccountStatusPage() {
             onEdit={() => {}}
             onChangeRole={() => {}}
             onToggleLock={handleToggleLock}
+          />
+        )}
+
+        {lockUser && (
+          <ConfirmDialog
+            title={
+              lockUser.status === USER_ACCOUNT_STATUS.INACTIVE
+                ? 'Mở khóa tài khoản?'
+                : 'Khóa tài khoản?'
+            }
+            description={`Bạn có chắc muốn ${
+              lockUser.status === USER_ACCOUNT_STATUS.INACTIVE ? 'mở khóa' : 'khóa'
+            } tài khoản ${lockUser.fullName}?`}
+            confirmLabel={
+              lockUser.status === USER_ACCOUNT_STATUS.INACTIVE
+                ? 'Mở khóa'
+                : 'Khóa tài khoản'
+            }
+            tone={lockUser.status === USER_ACCOUNT_STATUS.INACTIVE ? 'primary' : 'danger'}
+            isSaving={updateStatusMutation.isPending}
+            error={actionError}
+            onCancel={() => {
+              if (!updateStatusMutation.isPending) {
+                setLockUser(null)
+                setActionError('')
+              }
+            }}
+            onConfirm={() =>
+              updateStatusMutation.mutate({
+                userId: lockUser.id,
+                status:
+                  lockUser.status === USER_ACCOUNT_STATUS.INACTIVE
+                    ? USER_ACCOUNT_STATUS.ACTIVE
+                    : USER_ACCOUNT_STATUS.INACTIVE,
+              })
+            }
           />
         )}
       </div>

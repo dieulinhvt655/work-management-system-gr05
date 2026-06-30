@@ -1,17 +1,4 @@
-import { getPermissionsForMockRole } from '../constants/mock/rolePermissions'
 import { PERMISSIONS } from '../constants/permissions'
-import { MOCK_ROLES } from '../constants/roles'
-
-/** Backend role name → frontend permission profile (mock role keys). */
-export const BACKEND_ROLE_TO_MOCK_ROLE = {
-  'System Admin': MOCK_ROLES.SYSTEM_ADMIN,
-  'Workspace Owner': MOCK_ROLES.WORKSPACE_OWNER,
-  'Team Leader': MOCK_ROLES.TEAM_LEADER,
-  'Project Manager': MOCK_ROLES.PROJECT_MANAGER,
-  'Project Contributor': MOCK_ROLES.TEAM_MEMBER,
-  'Team Member': MOCK_ROLES.TEAM_MEMBER,
-  'Workspace Member': MOCK_ROLES.WORKSPACE_MEMBER,
-}
 
 /** Fallback map when role is unknown — backend permission code → frontend codes. */
 const BACKEND_CODE_TO_FRONTEND = {
@@ -100,12 +87,7 @@ export function resolveFrontendPermissions(roleName, backendCodes = []) {
     return mapBackendCodes(backendCodes)
   }
 
-  const mockRole = BACKEND_ROLE_TO_MOCK_ROLE[roleName]
-  if (mockRole) {
-    return getPermissionsForMockRole(mockRole)
-  }
-
-  return mapBackendCodes(backendCodes)
+  return isSystemAdminRole(roleName) ? Object.values(PERMISSIONS) : []
 }
 
 export function isSystemAdminRole(roleName, roleScope) {

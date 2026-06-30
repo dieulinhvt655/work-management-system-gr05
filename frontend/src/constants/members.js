@@ -5,7 +5,7 @@ export const MEMBER_ORG_STATUS = {
 
 export const MEMBER_ORG_STATUS_LABELS = {
   [MEMBER_ORG_STATUS.ACTIVE]: 'active',
-  [MEMBER_ORG_STATUS.INACTIVE]: 'inactive',
+  [MEMBER_ORG_STATUS.INACTIVE]: 'inactive (khóa)',
 }
 
 export const MEMBER_ORG_STATUS_OPTIONS = Object.entries(

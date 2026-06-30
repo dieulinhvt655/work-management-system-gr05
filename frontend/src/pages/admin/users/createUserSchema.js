@@ -12,6 +12,7 @@ export const createUserSchema = z.object({
     .min(3, 'Username phải có ít nhất 3 ký tự')
     .max(100, 'Username tối đa 100 ký tự'),
   phone: z.string().optional(),
+  workspaceId: z.string().optional(),
   role: z.string().min(1, 'Vui lòng chọn vai trò hệ thống'),
   status: z.enum([USER_ACCOUNT_STATUS.ACTIVE, USER_ACCOUNT_STATUS.INACTIVE], {
     errorMap: () => ({ message: 'Vui lòng chọn trạng thái tài khoản' }),

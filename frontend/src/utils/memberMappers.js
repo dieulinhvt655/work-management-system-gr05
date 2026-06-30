@@ -11,6 +11,11 @@ export function mapWorkspaceMemberResponse(member) {
 
   const user = member.user ?? {}
   const roleName = member.role?.name ?? null
+  const userStatus = String(user.status ?? '').trim().toUpperCase()
+  const isAccountInactive = Boolean(userStatus) && userStatus !== 'ACTIVE'
+  const organizationStatus = isAccountInactive
+    ? 'INACTIVE'
+    : normalizeOrganizationStatus(member.status)
 
   return {
     id: String(member.id),
@@ -27,7 +32,8 @@ export function mapWorkspaceMemberResponse(member) {
     role: mapBackendRoleToFrontendKey(member.role),
     roleId: member.role?.id ?? null,
     roleName,
-    organizationStatus: normalizeOrganizationStatus(member.status),
+    accountStatus: userStatus || null,
+    organizationStatus,
     activeTaskCount: 0,
     joinedAt: member.joinedAt ?? null,
     updatedAt: member.removedAt ?? member.joinedAt ?? null,

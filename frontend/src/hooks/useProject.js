@@ -13,8 +13,8 @@ export function useProject() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['projects', workspaceId, projectId],
-    queryFn: () => fetchProjectById(projectId, workspaceId),
+    queryKey: ['projects', workspaceId, projectId, user?.id],
+    queryFn: () => fetchProjectById(projectId, workspaceId, user),
     enabled: isAuthenticated && !authLoading && Boolean(projectId),
   })
 

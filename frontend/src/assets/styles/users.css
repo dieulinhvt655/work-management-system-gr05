@@ -438,12 +438,12 @@ select.user-filters__control {
 }
 
 .user-status--inactive {
-  color: #64748b;
-  background: #f1f5f9;
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
 }
 
 .user-status--inactive .user-status__dot {
-  background: #94a3b8;
+  background: #ef4444;
 }
 
 .user-status--active {
@@ -455,22 +455,13 @@ select.user-filters__control {
   background: #10b981;
 }
 
-.user-status--locked {
-  background: rgba(239, 68, 68, 0.08);
-  color: #b91c1c;
+.user-status--deleted {
+  color: #64748b;
+  background: #f1f5f9;
 }
 
-.user-status--locked .user-status__dot {
-  background: #ef4444;
-}
-
-.user-status--pending {
-  background: rgba(245, 158, 11, 0.1);
-  color: #b45309;
-}
-
-.user-status--pending .user-status__dot {
-  background: #f59e0b;
+.user-status--deleted .user-status__dot {
+  background: #94a3b8;
 }
 
 /* ─── Empty states ─── */
@@ -521,6 +512,7 @@ select.user-filters__control {
   border-radius: 8px;
   background: transparent;
   color: #94a3b8;
+  text-decoration: none;
   transition:
     background-color 0.15s ease,
     color 0.15s ease,
@@ -649,6 +641,16 @@ select.user-filters__control {
 
 .modal__body {
   padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.modal__error {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  font-size: 0.875rem;
+  color: var(--color-danger);
 }
 
 .modal__footer {
