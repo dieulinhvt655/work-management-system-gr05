@@ -18,6 +18,10 @@ export function getErrorMessage(error, fallback = 'Đã xảy ra lỗi. Vui lòn
     return 'Không tìm thấy API. Kiểm tra backend đang chạy và VITE_PROXY_TARGET trong .env.development.'
   }
 
+  if (status === 403) {
+    return data?.message ?? 'Không có quyền truy cập. Tài khoản hiện tại chưa được backend cấp quyền thực hiện thao tác này.'
+  }
+
   if (data?.success === false && data?.message) {
     return data.message
   }

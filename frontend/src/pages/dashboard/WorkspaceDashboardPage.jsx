@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import {
   Briefcase,
   Shield,
@@ -20,6 +20,7 @@ import { PERMISSIONS } from '../../constants/permissions'
 import { ROLE_SCOPE } from '../../constants/roles'
 import { WORKSPACE_STATUS_LABELS } from '../../constants/workspaces'
 import { useAuth } from '../../context/AuthContext'
+import { isTeamLeaderUser } from '../../utils/userRoleUtils'
 import PermissionRoute from '../../routes/PermissionRoute'
 import { formatLastActivity } from '../admin/users/utils/formatUserDate'
 
@@ -62,11 +63,12 @@ function ActionCard({ title, description, to, cta }) {
 export default function WorkspaceDashboardPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const workspaceId = user?.workspaceId
+  const isTeamLeader = isTeamLeaderUser(user)
 
   const { data: workspaces = [], isLoading: workspacesLoading } = useQuery({
     queryKey: ['workspace-owner', 'workspaces'],
     queryFn: fetchWorkspaces,
-    enabled: isAuthenticated && !authLoading,
+    enabled: isAuthenticated && !authLoading && !isTeamLeader,
   })
 
   const workspace = workspaces.find((item) => item.id === workspaceId) ?? workspaces[0]
@@ -100,6 +102,10 @@ export default function WorkspaceDashboardPage() {
 
   if (authLoading || workspacesLoading) {
     return <LoadingScreen />
+  }
+
+  if (isTeamLeader) {
+    return <Navigate to="/dashboard/team" replace />
   }
 
   const activities = activityPayload?.items ?? []

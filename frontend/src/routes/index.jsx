@@ -25,6 +25,7 @@ import UserAccountStatusTab from '../pages/admin/users/detail/UserAccountStatusT
 import UserActivityTab from '../pages/admin/users/detail/UserActivityTab'
 import ProjectsListPage from '../pages/projects/ProjectsListPage'
 import CreateProjectPage from '../pages/projects/CreateProjectPage'
+import TeamMembersPage from '../pages/projects/TeamMembersPage'
 import ProjectIndexRedirect from '../pages/projects/ProjectIndexRedirect'
 import ProjectLayout from '../components/layout/ProjectLayout'
 import {
@@ -45,6 +46,7 @@ import MembersListPage from '../pages/members/MembersListPage'
 import MemberDetailPage from '../pages/members/MemberDetailPage'
 import ProfilePage from '../pages/profile/ProfilePage'
 import WorkspaceDashboardPage from '../pages/dashboard/WorkspaceDashboardPage'
+import TeamLeaderDashboardPage from '../pages/dashboard/TeamLeaderDashboardPage'
 import WorkspaceInfoPage from '../pages/workspace/WorkspaceInfoPage'
 import WorkspaceActivityPage from '../pages/workspace/WorkspaceActivityPage'
 import WorkspaceRolesPage from '../pages/workspace/WorkspaceRolesPage'
@@ -128,6 +130,7 @@ export default function AppRoutes() {
             path="/dashboard/workspace"
             element={<WorkspaceDashboardPage />}
           />
+          <Route path="/dashboard/team" element={<TeamLeaderDashboardPage />} />
           <Route
             path="/dashboard/my"
             element={
@@ -221,6 +224,10 @@ export default function AppRoutes() {
           <Route
             path="/projects/create"
             element={<CreateProjectPage />}
+          />
+          <Route
+            path="/projects/team-members"
+            element={<TeamMembersPage />}
           />
           <Route
             path="/projects/activity"

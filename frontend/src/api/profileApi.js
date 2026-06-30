@@ -1,10 +1,29 @@
+import { isSystemAdminRole } from '../utils/backendAuthMapper'
 import { mapUserToProfile } from '../utils/userMappers'
 import { unwrapApiResponse } from './apiResponse'
 import api from './axios'
+import { resolveCurrentUserOrganization } from './userOrganizationApi'
+
+async function enrichProfile(apiUser) {
+  const roleName = apiUser.role?.name ?? apiUser.role
+  const roleScope = apiUser.role?.scope
+  const isSystemAdmin = isSystemAdminRole(roleName, roleScope)
+
+  if (isSystemAdmin) {
+    return mapUserToProfile(apiUser)
+  }
+
+  const organization = await resolveCurrentUserOrganization({
+    id: apiUser.id,
+    isSystemAdmin,
+  })
+
+  return mapUserToProfile(apiUser, organization)
+}
 
 export async function fetchProfile() {
   const { data } = await api.get('/users/me')
-  return mapUserToProfile(unwrapApiResponse({ data }))
+  return enrichProfile(unwrapApiResponse({ data }))
 }
 
 export async function updateProfile(payload) {
@@ -26,7 +45,7 @@ export async function updateProfile(payload) {
   const { data } = await api.patch('/users/me', body)
   const apiUser = unwrapApiResponse({ data })
 
-  return mapUserToProfile({
+  return enrichProfile({
     ...apiUser,
     phone: apiUser.phone ?? payload.phone ?? null,
     avatarUrl: apiUser.avatarUrl ?? payload.avatarUrl ?? null,

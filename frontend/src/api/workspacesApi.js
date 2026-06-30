@@ -1,5 +1,5 @@
 import { mapWorkspaceResponse } from '../utils/workspaceMappers'
-import { unwrapApiResponse } from './apiResponse'
+import { fetchAllPages, unwrapApiResponse } from './apiResponse'
 import api from './axios'
 import { fetchUsers } from './usersApi'
 
@@ -55,6 +55,39 @@ export async function fetchWorkspaceById(workspaceId) {
   const workspace = unwrapApiResponse({ data })
   const memberCount = await fetchWorkspaceMemberCount(workspaceId)
   return mapWorkspaceResponse(workspace, { memberCount })
+}
+
+/** Workspace info cho member/team leader khi không gọi được GET /workspaces/{id}. */
+export async function fetchAccessibleWorkspaceInfo(workspaceId, extras = {}) {
+  try {
+    return await fetchWorkspaceById(workspaceId)
+  } catch {
+    let memberCount = 0
+
+    try {
+      const members = await fetchAllPages(async ({ page, size }) => {
+        const { data } = await api.get(`/workspaces/${workspaceId}/members`, {
+          params: { page, size },
+        })
+        return unwrapApiResponse({ data })
+      })
+      memberCount = members.length
+    } catch {
+      memberCount = 0
+    }
+
+    return mapWorkspaceResponse(
+      {
+        id: workspaceId,
+        name: extras.workspaceName ?? `Workspace #${workspaceId}`,
+        description: extras.teamName
+          ? `Bạn đang làm việc tại phòng ban ${extras.teamName}.`
+          : '',
+        status: 'ACTIVE',
+      },
+      { memberCount },
+    )
+  }
 }
 
 /** Users có vai trò Workspace Owner — dùng cho form tạo workspace. */
