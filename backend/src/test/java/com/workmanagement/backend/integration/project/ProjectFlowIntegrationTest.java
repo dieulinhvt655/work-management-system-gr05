@@ -7,6 +7,7 @@ import com.workmanagement.backend.team.dto.request.AddTeamMemberRequest;
 import com.workmanagement.backend.team.dto.request.CreateTeamRequest;
 import com.workmanagement.backend.workspace.dto.request.CreateWorkspaceRequest;
 import com.workmanagement.backend.common.enums.RoleScope;
+import com.workmanagement.backend.user.entity.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
@@ -24,9 +25,11 @@ class ProjectFlowIntegrationTest extends AbstractIntegrationTest {
     void workspaceTeamProjectHierarchy_shouldWorkEndToEnd() throws Exception {
         LoginTokens tokens = loginAsAdmin();
         String suffix = uniqueId();
+        User workspaceOwner = createActiveUser("flow-" + suffix);
 
         CreateWorkspaceRequest workspaceRequest = new CreateWorkspaceRequest();
         workspaceRequest.setName("Flow Workspace " + suffix);
+        workspaceRequest.setOwnerId(workspaceOwner.getId());
 
         var workspaceResult = mockMvc.perform(post("/api/v1/workspaces")
                         .with(bearer(tokens.accessToken()))
@@ -115,11 +118,22 @@ class ProjectFlowIntegrationTest extends AbstractIntegrationTest {
 
         CreateWorkspaceRequest workspaceRequest = new CreateWorkspaceRequest();
         workspaceRequest.setName("Forbidden Workspace");
+        workspaceRequest.setOwnerId(1L);
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .with(bearer(tokens.accessToken()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(workspaceRequest)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false));
+
+        mockMvc.perform(get("/api/v1/workspaces")
+                        .with(bearer(tokens.accessToken())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false));
+
+        mockMvc.perform(get("/api/v1/workspaces/1")
+                        .with(bearer(tokens.accessToken())))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
     }

@@ -113,6 +113,17 @@ public abstract class AbstractIntegrationTest {
         return login(email, password);
     }
 
+    protected User createActiveUser(String suffix) {
+        return userRepository.save(User.builder()
+                .fullName("Workspace Owner " + suffix)
+                .email("workspace-owner-" + suffix + "@test.local")
+                .username("workspace_owner_" + suffix)
+                .employeeCode(employeeCodeGenerator.generateUnique())
+                .passwordHash(passwordEncoder.encode("password123"))
+                .status(UserStatus.ACTIVE)
+                .build());
+    }
+
     protected Long findRoleId(String accessToken, String roleName, RoleScope scope) throws Exception {
         MvcResult result = mockMvc.perform(get("/api/v1/roles")
                         .with(bearer(accessToken)))
@@ -132,10 +143,12 @@ public abstract class AbstractIntegrationTest {
 
     protected ProjectTestContext setupPmProject(String suffix) throws Exception {
         LoginTokens tokens = loginAsAdmin();
+        User workspaceOwner = createActiveUser(suffix);
 
         CreateWorkspaceRequest workspaceRequest = new CreateWorkspaceRequest();
         workspaceRequest.setName("Workspace " + suffix);
         workspaceRequest.setDescription("Integration test workspace");
+        workspaceRequest.setOwnerId(workspaceOwner.getId());
 
         MvcResult workspaceResult = mockMvc.perform(post("/api/v1/workspaces")
                         .with(bearer(tokens.accessToken()))
@@ -158,7 +171,8 @@ public abstract class AbstractIntegrationTest {
                 .andReturn();
         Long teamId = readData(teamResult).get("id").asLong();
 
-        Long workspaceMemberId = findAdminWorkspaceMemberId(tokens.accessToken(), workspaceId);
+        Long workspaceMemberId = findWorkspaceMemberId(
+                tokens.accessToken(), workspaceId, workspaceOwner.getEmail());
         Long teamLeaderRoleId = findRoleId(tokens.accessToken(), "Team Leader", RoleScope.TEAM);
 
         AddTeamMemberRequest addMemberRequest = new AddTeamMemberRequest();
@@ -173,7 +187,8 @@ public abstract class AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        Long teamMemberId = findTeamMemberId(tokens.accessToken(), workspaceId, teamId);
+        Long teamMemberId = findTeamMemberId(
+                tokens.accessToken(), workspaceId, teamId, workspaceOwner.getEmail());
 
         CreateProjectRequest projectRequest = new CreateProjectRequest();
         projectRequest.setCode("PRJ-" + suffix);
@@ -239,7 +254,7 @@ public abstract class AbstractIntegrationTest {
         return readData(result).get("id").asLong();
     }
 
-    private Long findAdminWorkspaceMemberId(String accessToken, Long workspaceId) throws Exception {
+    private Long findWorkspaceMemberId(String accessToken, Long workspaceId, String email) throws Exception {
         MvcResult result = mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/members", workspaceId)
                         .with(bearer(accessToken)))
                 .andExpect(status().isOk())
@@ -247,14 +262,19 @@ public abstract class AbstractIntegrationTest {
                 .andReturn();
 
         for (JsonNode member : readData(result)) {
-            if (ADMIN_EMAIL.equals(member.path("user").path("email").asText())) {
+            if (email.equals(member.path("user").path("email").asText())) {
                 return member.get("id").asLong();
             }
         }
-        throw new IllegalStateException("Admin workspace member not found");
+        throw new IllegalStateException("Workspace member not found: " + email);
     }
 
-    private Long findTeamMemberId(String accessToken, Long workspaceId, Long teamId) throws Exception {
+    private Long findTeamMemberId(
+            String accessToken,
+            Long workspaceId,
+            Long teamId,
+            String email
+    ) throws Exception {
         MvcResult result = mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/teams/{teamId}/members",
                         workspaceId, teamId)
                         .with(bearer(accessToken)))
@@ -263,10 +283,10 @@ public abstract class AbstractIntegrationTest {
                 .andReturn();
 
         for (JsonNode member : readData(result)) {
-            if (ADMIN_EMAIL.equals(member.path("user").path("email").asText())) {
+            if (email.equals(member.path("user").path("email").asText())) {
                 return member.get("id").asLong();
             }
         }
-        throw new IllegalStateException("Admin team member not found");
+        throw new IllegalStateException("Team member not found: " + email);
     }
 }

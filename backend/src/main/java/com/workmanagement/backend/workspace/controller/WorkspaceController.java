@@ -44,6 +44,12 @@ public class WorkspaceController {
     }
 
     /** UC-2.2 — Chi tiết workspace */
+    @GetMapping("/current")
+    public ApiResponse<WorkspaceResponse> findCurrent() {
+        return ApiResponse.success(workspaceService.findCurrent());
+    }
+
+    /** UC-2.2 — System Admin tra cứu workspace theo id */
     @GetMapping("/{id}")
     public ApiResponse<WorkspaceResponse> findById(@PathVariable Long id) {
         return ApiResponse.success(workspaceService.findById(id));
@@ -62,6 +68,12 @@ public class WorkspaceController {
     @PatchMapping("/{id}/close")
     public ApiResponse<WorkspaceResponse> close(@PathVariable Long id) {
         return ApiResponse.success(workspaceService.close(id), "Đóng workspace thành công");
+    }
+
+    /** UC-2.10 — System Admin kích hoạt lại workspace */
+    @PatchMapping("/{id}/reactivate")
+    public ApiResponse<WorkspaceResponse> reactivate(@PathVariable Long id) {
+        return ApiResponse.success(workspaceService.reactivate(id), "Kích hoạt lại workspace thành công");
     }
 
 }

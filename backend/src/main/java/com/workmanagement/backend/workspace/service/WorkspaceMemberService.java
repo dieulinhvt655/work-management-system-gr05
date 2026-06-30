@@ -31,6 +31,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WorkspaceMemberService {
 
+    private static final String WORKSPACE_MEMBER_ROLE = "Workspace Member";
+    private static final String SYSTEM_ADMIN_ROLE = "System Admin";
+
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final WorkspaceMemberMapper workspaceMemberMapper;
     private final WorkspaceService workspaceService;
@@ -42,6 +45,7 @@ public class WorkspaceMemberService {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('workspace:read')")
     public List<WorkspaceMemberResponse> findAll(Long workspaceId) {
+        validateId(workspaceId, "Workspace id");
         Workspace workspace = workspaceService.getWorkspace(workspaceId);
         workspaceService.verifyAccess(workspace);
 
@@ -55,12 +59,21 @@ public class WorkspaceMemberService {
     @Transactional
     @PreAuthorize("hasAuthority('workspace:update')")
     public WorkspaceMemberResponse add(Long workspaceId, AddWorkspaceMemberRequest request) {
+        validateId(workspaceId, "Workspace id");
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Request không được để trống");
+        }
+        validateId(request.getUserId(), "User id");
+        validateId(request.getRoleId(), "Role id");
         Workspace workspace = workspaceService.getWorkspace(workspaceId);
         workspaceService.verifyCanManage(workspace);
         ensureWorkspaceActive(workspace);
 
-        if (workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspaceId, request.getUserId())) {
-            throw new BusinessException(ErrorCode.WORKSPACE_MEMBER_ALREADY_EXISTS, "User đã là thành viên workspace");
+        if (workspaceMemberRepository.existsByUserId(request.getUserId())) {
+            throw new BusinessException(
+                    ErrorCode.WORKSPACE_MEMBER_ALREADY_EXISTS,
+                    "User đã thuộc một workspace"
+            );
         }
 
         User user = userRepository.findById(request.getUserId())
@@ -70,7 +83,12 @@ public class WorkspaceMemberService {
         }
 
         Role role = roleService.getRole(request.getRoleId());
-        validateWorkspaceRole(role);
+        validateAssignableMemberRole(role);
+
+        if (user.getRole() == null || !SYSTEM_ADMIN_ROLE.equals(user.getRole().getName())) {
+            user.setRole(role);
+            userRepository.save(user);
+        }
 
         User currentUser = userRepository.findById(SecurityUtils.getCurrentUserId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND, "Không tìm thấy người dùng"));
@@ -99,6 +117,12 @@ public class WorkspaceMemberService {
     @Transactional
     @PreAuthorize("hasAuthority('workspace:update')")
     public WorkspaceMemberResponse update(Long workspaceId, Long memberId, UpdateWorkspaceMemberRequest request) {
+        validateId(workspaceId, "Workspace id");
+        validateId(memberId, "Workspace member id");
+        if (request == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Request không được để trống");
+        }
+        validateId(request.getRoleId(), "Role id");
         Workspace workspace = workspaceService.getWorkspace(workspaceId);
         workspaceService.verifyCanManage(workspace);
         ensureWorkspaceActive(workspace);
@@ -116,7 +140,7 @@ public class WorkspaceMemberService {
         }
 
         Role role = roleService.getRole(request.getRoleId());
-        validateWorkspaceRole(role);
+        validateAssignableMemberRole(role);
         member.setRole(role);
 
         if (request.getStatus() != null) {
@@ -141,15 +165,24 @@ public class WorkspaceMemberService {
         return workspaceMemberMapper.toResponse(member);
     }
 
-    private void validateWorkspaceRole(Role role) {
-        if (role.getScope() != RoleScope.WORKSPACE) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Chỉ được gán vai trò WORKSPACE scope");
+    private void validateAssignableMemberRole(Role role) {
+        if (role.getScope() != RoleScope.WORKSPACE || !WORKSPACE_MEMBER_ROLE.equals(role.getName())) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_ERROR,
+                    "API thành viên chỉ được gán vai trò Workspace Member"
+            );
         }
     }
 
     private void ensureWorkspaceActive(Workspace workspace) {
         if (workspace.getStatus() != com.workmanagement.backend.common.enums.CommonStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "Workspace đã đóng");
+        }
+    }
+
+    private void validateId(Long id, String fieldName) {
+        if (id == null || id <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, fieldName + " không hợp lệ");
         }
     }
 

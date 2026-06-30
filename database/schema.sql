@@ -111,6 +111,8 @@ CREATE TABLE workspaces (
                                           created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                           updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
 
+                                          UNIQUE KEY uq_workspaces_name (name),
+
                                           CONSTRAINT fk_workspaces_owner_user
                                               FOREIGN KEY (owner_user_id) REFERENCES users(id)
                                                   ON UPDATE CASCADE ON DELETE RESTRICT
@@ -126,7 +128,7 @@ CREATE TABLE workspace_members (
                                                  joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                                  removed_at DATETIME,
 
-                                                 UNIQUE KEY uq_workspace_members_workspace_user (workspace_id, user_id),
+                                                 UNIQUE KEY uq_workspace_members_user (user_id),
 
                                                  CONSTRAINT fk_workspace_members_workspace
                                                      FOREIGN KEY (workspace_id) REFERENCES workspaces(id)

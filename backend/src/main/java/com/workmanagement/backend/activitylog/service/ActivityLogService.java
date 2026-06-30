@@ -51,7 +51,7 @@ public class ActivityLogService {
 
     /** UC-2.9 — Tra cứu hoạt động tổ chức (workspace) */
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('workspace:read')")
+    @PreAuthorize("hasAuthority('workspace:read') and hasAuthority('workspace:activity-read')")
     public PageResponse<ActivityLogResponse> findByWorkspace(
             Long workspaceId,
             int page,

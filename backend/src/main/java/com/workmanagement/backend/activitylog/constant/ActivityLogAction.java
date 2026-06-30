@@ -8,6 +8,7 @@ public final class ActivityLogAction {
     public static final String WORKSPACE_CREATED = "WORKSPACE_CREATED";
     public static final String WORKSPACE_UPDATED = "WORKSPACE_UPDATED";
     public static final String WORKSPACE_CLOSED = "WORKSPACE_CLOSED";
+    public static final String WORKSPACE_REACTIVATED = "WORKSPACE_REACTIVATED";
     public static final String WORKSPACE_MEMBER_ADDED = "WORKSPACE_MEMBER_ADDED";
     public static final String WORKSPACE_MEMBER_UPDATED = "WORKSPACE_MEMBER_UPDATED";
     public static final String TEAM_CREATED = "TEAM_CREATED";

@@ -118,7 +118,7 @@ class WorkspaceMemberServiceTest {
 
         when(workspaceService.getWorkspace(10L)).thenReturn(workspace);
         doNothing().when(workspaceService).verifyCanManage(workspace);
-        when(workspaceMemberRepository.existsByWorkspaceIdAndUserId(10L, 2L)).thenReturn(false);
+        when(workspaceMemberRepository.existsByUserId(2L)).thenReturn(false);
         when(userRepository.findById(2L)).thenReturn(Optional.of(memberUser));
         when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
         when(roleService.getRole(3L)).thenReturn(memberRole);
@@ -128,6 +128,7 @@ class WorkspaceMemberServiceTest {
         WorkspaceMemberResponse result = workspaceMemberService.add(10L, request);
 
         assertThat(result.getId()).isEqualTo(5L);
+        assertThat(memberUser.getRole()).isEqualTo(memberRole);
     }
 
     @Test
@@ -138,12 +139,33 @@ class WorkspaceMemberServiceTest {
 
         when(workspaceService.getWorkspace(10L)).thenReturn(workspace);
         doNothing().when(workspaceService).verifyCanManage(workspace);
-        when(workspaceMemberRepository.existsByWorkspaceIdAndUserId(10L, 2L)).thenReturn(true);
+        when(workspaceMemberRepository.existsByUserId(2L)).thenReturn(true);
 
         assertThatThrownBy(() -> workspaceMemberService.add(10L, request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.WORKSPACE_MEMBER_ALREADY_EXISTS);
+    }
+
+    @Test
+    void add_shouldRejectAssigningAnotherWorkspaceOwner() {
+        AddWorkspaceMemberRequest request = new AddWorkspaceMemberRequest();
+        request.setUserId(2L);
+        request.setRoleId(4L);
+        Role ownerRole = Role.builder().id(4L).name("Workspace Owner").scope(RoleScope.WORKSPACE).build();
+
+        when(workspaceService.getWorkspace(10L)).thenReturn(workspace);
+        doNothing().when(workspaceService).verifyCanManage(workspace);
+        when(workspaceMemberRepository.existsByUserId(2L)).thenReturn(false);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(memberUser));
+        when(roleService.getRole(4L)).thenReturn(ownerRole);
+
+        assertThatThrownBy(() -> workspaceMemberService.add(10L, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.VALIDATION_ERROR);
+
+        verify(workspaceMemberRepository, org.mockito.Mockito.never()).save(any());
     }
 
     @Test

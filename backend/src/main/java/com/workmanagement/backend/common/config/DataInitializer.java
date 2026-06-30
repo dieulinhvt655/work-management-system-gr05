@@ -39,7 +39,14 @@ public class DataInitializer implements CommandLineRunner {
     private static final String ADMIN_PASSWORD = "admin123";
 
     /** Roles luôn được đồng bộ lại permission khi restart (thêm/sửa quyền trong seed). */
-    private static final Set<String> ROLES_ALWAYS_RESYNC = Set.of("System Admin", "Workspace Owner");
+    private static final Set<String> ROLES_ALWAYS_RESYNC = Set.of(
+            "System Admin",
+            "Workspace Owner",
+            "Team Leader",
+            "Team Member",
+            "Project Manager",
+            "Project Contributor"
+    );
 
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
@@ -143,6 +150,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private static final String[][] PERMISSIONS = {
+            {"system:admin", "Quản trị hệ thống", "system", "Định danh quyền System Admin"},
             {"user:read", "Xem người dùng", "user", "Xem danh sách và chi tiết tài khoản"},
             {"user:create", "Tạo người dùng", "user", "Tạo tài khoản người dùng mới"},
             {"user:update", "Cập nhật người dùng", "user", "Cập nhật thông tin tài khoản"},
@@ -158,6 +166,7 @@ public class DataInitializer implements CommandLineRunner {
             {"permission:update", "Cập nhật quyền", "permission", "Cập nhật quyền"},
             {"permission:delete", "Xóa quyền", "permission", "Xóa quyền"},
             {"workspace:read", "Xem workspace", "workspace", "Xem thông tin workspace"},
+            {"workspace:activity-read", "Xem lịch sử workspace", "workspace", "Xem lịch sử hoạt động tổ chức"},
             {"workspace:create", "Tạo workspace", "workspace", "Tạo workspace mới"},
             {"workspace:update", "Cập nhật workspace", "workspace", "Cập nhật thông tin workspace"},
             {"workspace:delete", "Xóa workspace", "workspace", "Xóa workspace"},
@@ -216,7 +225,7 @@ public class DataInitializer implements CommandLineRunner {
         map.put("Workspace Owner", List.of(
                 "user:read", "user:create", "user:update", "user:lock", "user:assign-role",
                 "role:read",
-                "workspace:read", "workspace:create", "workspace:update", "workspace:close",
+                "workspace:read", "workspace:activity-read", "workspace:update", "workspace:close",
                 "team:read", "team:create", "team:update", "team:delete",
                 "project:read", "attachment:read", "dashboard:read", "notification:read"
         ));
@@ -228,6 +237,7 @@ public class DataInitializer implements CommandLineRunner {
         ));
 
         map.put("Team Leader", List.of(
+                "workspace:read",
                 "team:read", "team:create", "team:update", "team:delete",
                 "project:read", "project:create", "project:update", "project:manage-members",
                 "attachment:read", "attachment:create", "attachment:delete",
@@ -238,6 +248,7 @@ public class DataInitializer implements CommandLineRunner {
         ));
 
         map.put("Team Member", List.of(
+                "workspace:read",
                 "team:read", "project:read", "attachment:read",
                 "task:read", "task:update",
                 "comment:read", "comment:create", "comment:update",
@@ -245,6 +256,7 @@ public class DataInitializer implements CommandLineRunner {
         ));
 
         map.put("Project Manager", List.of(
+                "workspace:read",
                 "project:read", "project:create", "project:update", "project:manage-members",
                 "backlog:read", "backlog:create", "backlog:update", "backlog:delete",
                 "sprint:read", "sprint:create", "sprint:update", "sprint:delete",
@@ -255,6 +267,7 @@ public class DataInitializer implements CommandLineRunner {
         ));
 
         map.put("Project Contributor", List.of(
+                "workspace:read",
                 "project:read",
                 "task:read", "task:update",
                 "comment:read", "comment:create", "comment:update",

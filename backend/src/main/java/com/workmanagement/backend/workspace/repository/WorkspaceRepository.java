@@ -12,6 +12,10 @@ import java.util.List;
 
 public interface WorkspaceRepository extends JpaRepository<Workspace, Long>, JpaSpecificationExecutor<Workspace> {
 
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
+
     @Query("select w.id from Workspace w where w.owner.id = :userId")
     List<Long> findIdsByOwnerId(@Param("userId") Long userId);
 

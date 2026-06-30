@@ -54,7 +54,7 @@ class WorkspaceControllerTest {
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"New WS","description":"Test"}
+                                {"name":"New WS","description":"Test","ownerId":1}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name").value("New WS"));
@@ -88,6 +88,16 @@ class WorkspaceControllerTest {
     }
 
     @Test
+    void findCurrent_shouldReturnCurrentWorkspace() throws Exception {
+        WorkspaceResponse response = WorkspaceResponse.builder().id(1L).name("Current WS").build();
+        when(workspaceService.findCurrent()).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/workspaces/current"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(1));
+    }
+
+    @Test
     void update_shouldReturnUpdatedWorkspace() throws Exception {
         WorkspaceResponse response = WorkspaceResponse.builder().id(1L).name("Updated").build();
         when(workspaceService.update(eq(1L), any())).thenReturn(response);
@@ -111,6 +121,18 @@ class WorkspaceControllerTest {
                 .andExpect(jsonPath("$.data.status").value("INACTIVE"));
 
         verify(workspaceService).close(1L);
+    }
+
+    @Test
+    void reactivate_shouldReturnActiveWorkspace() throws Exception {
+        WorkspaceResponse response = WorkspaceResponse.builder().id(1L).status(CommonStatus.ACTIVE).build();
+        when(workspaceService.reactivate(1L)).thenReturn(response);
+
+        mockMvc.perform(patch("/api/v1/workspaces/1/reactivate"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+
+        verify(workspaceService).reactivate(1L);
     }
 
 }

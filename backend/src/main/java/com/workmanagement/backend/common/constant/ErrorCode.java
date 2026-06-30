@@ -37,6 +37,7 @@ public final class ErrorCode {
     public static final String WORKSPACE_ACCESS_DENIED = "WS_002"; /** Không có quyền truy cập workspace. */
     public static final String WORKSPACE_MEMBER_NOT_FOUND = "WS_003"; /** Không tìm thấy thành viên workspace. */
     public static final String WORKSPACE_MEMBER_ALREADY_EXISTS = "WS_004"; /** User đã là thành viên workspace. */
+    public static final String WORKSPACE_NAME_ALREADY_EXISTS = "WS_005"; /** Tên workspace đã tồn tại. */
 
     // --- Team ---
     public static final String TEAM_NOT_FOUND = "TEAM_001"; /** Không tìm thấy nhóm làm việc. */
