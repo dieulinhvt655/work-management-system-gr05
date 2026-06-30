@@ -23,6 +23,7 @@ import {
   addProjectMember,
   createBacklogItem,
   createBacklogItemTask,
+  createProjectSprint,
   deleteBacklogItem,
   deleteBacklogItemTask,
   fetchBacklogItemTasks,
@@ -32,6 +33,7 @@ import {
   fetchProjectBacklogItems,
   fetchProjectDashboard,
   fetchProjectMembers,
+  fetchProjectSprints,
   updateBacklogItem,
   updateBacklogItemTask,
   updateProject,
@@ -409,6 +411,105 @@ function TaskModal({ task = null, members, onClose, onSave, isSaving, error }) {
   )
 }
 
+function SprintModal({ onClose, onSave, isSaving, error }) {
+  const [values, setValues] = useState({
+    name: '',
+    goal: '',
+    startDate: '',
+    endDate: '',
+  })
+  const [validationError, setValidationError] = useState('')
+
+  const set = (key, value) => {
+    setValidationError('')
+    setValues((current) => ({ ...current, [key]: value }))
+  }
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+
+    if (!values.name.trim()) {
+      setValidationError('Vui lòng nhập tên Sprint.')
+      return
+    }
+
+    if (!values.startDate || !values.endDate) {
+      setValidationError('Vui lòng chọn thời gian bắt đầu và kết thúc Sprint.')
+      return
+    }
+
+    if (new Date(values.endDate) < new Date(values.startDate)) {
+      setValidationError('Ngày kết thúc phải sau ngày bắt đầu.')
+      return
+    }
+
+    onSave(values)
+  }
+
+  return (
+    <Modal
+      title="Tạo mới Sprint"
+      description="Thiết lập chu kỳ làm việc, mục tiêu và thời gian triển khai."
+      onClose={onClose}
+      size="md"
+    >
+      <form className="project-form" onSubmit={handleSubmit} noValidate>
+        {(validationError || error) && (
+          <p className="modal__error" role="alert">
+            {validationError || error}
+          </p>
+        )}
+        <TextField
+          id="sprint-name"
+          label="Tên Sprint"
+          value={values.name}
+          onChange={(event) => set('name', event.target.value)}
+        />
+        <div className="project-form__grid">
+          <TextField
+            id="sprint-start"
+            type="date"
+            label="Ngày bắt đầu"
+            value={values.startDate}
+            onChange={(event) => set('startDate', event.target.value)}
+          />
+          <TextField
+            id="sprint-end"
+            type="date"
+            label="Ngày kết thúc"
+            value={values.endDate}
+            onChange={(event) => set('endDate', event.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label className="field__label" htmlFor="sprint-goal">
+            Mục tiêu Sprint
+          </label>
+          <textarea
+            id="sprint-goal"
+            className="field__input project-form__textarea"
+            rows={3}
+            value={values.goal}
+            onChange={(event) => set('goal', event.target.value)}
+          />
+        </div>
+        <div className="modal__footer">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Hủy
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSaving || !values.name.trim()}
+          >
+            {isSaving ? 'Đang tạo...' : 'Tạo Sprint'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
 function statusText(value) {
   return String(value ?? '—').replaceAll('_', ' ')
 }
@@ -745,6 +846,21 @@ export function ProjectBacklogPage() {
     },
   })
 
+  const markReadyMutation = useMutation({
+    mutationFn: (item) =>
+      updateBacklogItem(project, item.id, {
+        ...item,
+        status: 'READY',
+      }),
+    onSuccess: () => {
+      setActionError('')
+      invalidateBacklog()
+    },
+    onError: (error) => {
+      setActionError(getErrorMessage(error, 'Không thể xác nhận PBI Ready.'))
+    },
+  })
+
   const deleteItemMutation = useMutation({
     mutationFn: (item) => deleteBacklogItem(project, item.id),
     onSuccess: (_, item) => {
@@ -1044,6 +1160,20 @@ export function ProjectBacklogPage() {
                   <p>{selectedItem.description || 'Chưa có mô tả.'}</p>
                 </section>
 
+                {canManageBacklog && selectedItem.status !== 'READY' && (
+                  <button
+                    type="button"
+                    className="btn btn--primary backlog-ready-btn"
+                    onClick={() => markReadyMutation.mutate(selectedItem)}
+                    disabled={markReadyMutation.isPending || selectedTasks.length === 0}
+                  >
+                    <CheckCircle2 size={16} aria-hidden="true" />
+                    {markReadyMutation.isPending
+                      ? 'Đang xác nhận...'
+                      : 'Xác nhận PBI Ready'}
+                  </button>
+                )}
+
                 <section className="backlog-detail-section">
                   <div className="backlog-detail-section__header">
                     <h4>Phân rã task</h4>
@@ -1064,6 +1194,29 @@ export function ProjectBacklogPage() {
                           </div>
                           {canManageBacklog && (
                             <div className="project-row-actions">
+                              <select
+                                className="backlog-task-assignee"
+                                value={task.assigneeMemberId ?? ''}
+                                onChange={(event) =>
+                                  updateTaskMutation.mutate({
+                                    item: selectedItem,
+                                    task,
+                                    values: {
+                                      ...task,
+                                      assigneeMemberId: event.target.value,
+                                    },
+                                  })
+                                }
+                                aria-label="Phân assignee dự kiến"
+                                disabled={updateTaskMutation.isPending}
+                              >
+                                <option value="">Chưa gán</option>
+                                {members.map((member) => (
+                                  <option key={member.id} value={member.id}>
+                                    {member.fullName}
+                                  </option>
+                                ))}
+                              </select>
                               <button
                                 type="button"
                                 className="icon-btn"
@@ -1148,10 +1301,118 @@ export function ProjectBacklogPage() {
 }
 
 export function ProjectSprintPage() {
+  const { project } = useProject()
+  const { can } = usePermission()
+  const queryClient = useQueryClient()
+  const [showCreate, setShowCreate] = useState(false)
+  const [actionError, setActionError] = useState('')
+  const canManageSprint =
+    project?.isCurrentUserProjectManager ||
+    (can(PERMISSIONS.SPRINT_MANAGE) && project?.isCurrentUserTeamLeader)
+
+  const { data: sprints = [], isLoading } = useQuery({
+    queryKey: ['projects', project?.id, 'sprints'],
+    queryFn: () => fetchProjectSprints(project),
+    enabled: Boolean(project),
+  })
+
+  const createSprintMutation = useMutation({
+    mutationFn: (values) => createProjectSprint(project, values),
+    onSuccess: () => {
+      setShowCreate(false)
+      setActionError('')
+      queryClient.invalidateQueries({ queryKey: ['projects', project?.id, 'sprints'] })
+      queryClient.invalidateQueries({ queryKey: ['projects', project?.id, 'dashboard'] })
+    },
+    onError: (error) => {
+      setActionError(getErrorMessage(error, 'Không thể tạo Sprint.'))
+    },
+  })
+
   return (
     <PermissionRoute permission={PERMISSIONS.SPRINT_READ}>
-      <ProjectTabShell title="Sprint">
-        <EmptyState>Sprint board sẽ hiển thị khi có dữ liệu sprint từ API.</EmptyState>
+      <ProjectTabShell
+        title="Sprint"
+        description="Quản lý chu kỳ làm việc, mục tiêu và thời gian triển khai của dự án."
+        actions={
+          canManageSprint ? (
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => {
+                setActionError('')
+                setShowCreate(true)
+              }}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Tạo Sprint
+            </Button>
+          ) : null
+        }
+      >
+        {actionError && (
+          <p className="modal__error" role="alert">
+            {actionError}
+          </p>
+        )}
+
+        {isLoading ? (
+          <EmptyState>Đang tải danh sách Sprint...</EmptyState>
+        ) : sprints.length === 0 ? (
+          <EmptyState>Chưa có Sprint nào trong dự án.</EmptyState>
+        ) : (
+          <div className="sprint-workspace">
+            <section className="sprint-list">
+              {sprints.map((sprint) => (
+                <article key={sprint.id} className="sprint-card">
+                  <div>
+                    <BacklogBadge value={sprint.status} tone="info" />
+                    <h3>{sprint.name}</h3>
+                    <p>{sprint.goal || 'Chưa có mục tiêu Sprint.'}</p>
+                  </div>
+                  <div className="sprint-card__meta">
+                    <span>{formatDate(sprint.startDate)}</span>
+                    <span>{formatDate(sprint.endDate)}</span>
+                    <strong>{sprint.completionPercent}%</strong>
+                  </div>
+                </article>
+              ))}
+            </section>
+
+            <section className="sprint-timeline">
+              <div className="sprint-timeline__weeks">
+                <span>Week 1</span>
+                <span>Week 2</span>
+                <span>Week 3</span>
+                <span>Week 4</span>
+              </div>
+              {sprints.map((sprint, index) => (
+                <div key={sprint.id} className="sprint-timeline__row">
+                  <span>{sprint.name}</span>
+                  <div>
+                    <i style={{ width: `${Math.max(25, 95 - index * 12)}%` }}>
+                      {sprint.goal || sprint.name}
+                    </i>
+                  </div>
+                </div>
+              ))}
+            </section>
+          </div>
+        )}
+
+        {showCreate && (
+          <SprintModal
+            onClose={() => {
+              if (!createSprintMutation.isPending) {
+                setShowCreate(false)
+                setActionError('')
+              }
+            }}
+            onSave={(values) => createSprintMutation.mutate(values)}
+            isSaving={createSprintMutation.isPending}
+            error={actionError}
+          />
+        )}
       </ProjectTabShell>
     </PermissionRoute>
   )

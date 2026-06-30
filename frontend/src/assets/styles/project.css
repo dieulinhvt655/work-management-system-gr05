@@ -612,6 +612,129 @@
   border-style: dashed;
 }
 
+.backlog-ready-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.backlog-task-assignee {
+  max-width: 8.5rem;
+  min-height: 2rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-heading);
+  font-size: 0.78rem;
+}
+
+.sprint-workspace {
+  display: grid;
+  grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.sprint-list {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.sprint-card,
+.sprint-timeline {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.sprint-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.sprint-card h3 {
+  margin: 0.6rem 0 0.35rem;
+  color: var(--color-heading);
+  font-size: 1rem;
+}
+
+.sprint-card p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.sprint-card__meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.sprint-card__meta strong {
+  color: var(--color-heading);
+  text-align: right;
+}
+
+.sprint-timeline {
+  overflow: hidden;
+  min-height: 24rem;
+}
+
+.sprint-timeline__weeks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.sprint-timeline__weeks span {
+  padding: 0.85rem;
+  border-right: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.sprint-timeline__weeks span:last-child {
+  border-right: 0;
+}
+
+.sprint-timeline__row {
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 1fr);
+  min-height: 4rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sprint-timeline__row > span {
+  padding: 1rem;
+  border-right: 1px solid var(--color-border);
+  color: var(--color-heading);
+  font-weight: 700;
+}
+
+.sprint-timeline__row > div {
+  display: flex;
+  align-items: center;
+  padding: 0.85rem;
+}
+
+.sprint-timeline__row i {
+  display: block;
+  min-width: 8rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: #2563eb;
+  color: white;
+  font-size: 0.8125rem;
+  font-style: normal;
+}
+
 .project-detail-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1367,12 +1490,22 @@
   .project-detail-field-grid,
   .project-detail-two-cols,
   .backlog-workspace,
-  .backlog-toolbar {
+  .backlog-toolbar,
+  .sprint-workspace {
     grid-template-columns: 1fr;
   }
 
   .backlog-detail-panel {
     position: static;
+  }
+
+  .sprint-timeline__row {
+    grid-template-columns: 1fr;
+  }
+
+  .sprint-timeline__row > span {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .project-layout__title-row {
