@@ -1,5 +1,4 @@
 import { useOutletContext } from 'react-router-dom'
-import { MOCK_ROLE_LABELS } from '../../../../constants/roles'
 import { USER_ROLE_LABELS } from '../../../../constants/users'
 import { formatLastActivity } from '../utils/formatUserDate'
 import UserDetailRow from '../components/UserDetailRow'
@@ -26,9 +25,7 @@ export default function UserGeneralTab() {
           <UserDetailRow label="Chức vụ">{user.position ?? '—'}</UserDetailRow>
           <UserDetailRow label="Số điện thoại">{user.phone || '—'}</UserDetailRow>
           <UserDetailRow label="Vai trò hiện tại">
-            {USER_ROLE_LABELS[user.role] ??
-              MOCK_ROLE_LABELS[user.role] ??
-              user.role}
+            {user.roleName ?? USER_ROLE_LABELS[user.role] ?? user.role}
           </UserDetailRow>
           <UserDetailRow label="Trạng thái tài khoản">
             <UserStatusBadge status={user.status} />

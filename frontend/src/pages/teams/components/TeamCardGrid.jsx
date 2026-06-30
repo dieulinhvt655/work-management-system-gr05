@@ -2,7 +2,6 @@ import TeamCard from './TeamCard'
 
 export default function TeamCardGrid({
   teams,
-  onAssignLeader,
   onAddMember,
 }) {
   return (
@@ -11,7 +10,6 @@ export default function TeamCardGrid({
         <TeamCard
           key={team.id}
           team={team}
-          onAssignLeader={onAssignLeader}
           onAddMember={onAddMember}
         />
       ))}

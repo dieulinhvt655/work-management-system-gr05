@@ -9,17 +9,34 @@ function getInitials(fullName = '') {
 
 export default function UserAvatar({
   fullName = '',
+  avatarUrl = '',
   size = 'md',
   className = '',
   ...props
 }) {
+  const initials = getInitials(fullName) || '?'
+
+  if (avatarUrl) {
+    return (
+      <span
+        className={`user-avatar user-avatar--${size} user-avatar--image${
+          className ? ` ${className}` : ''
+        }`}
+        title={fullName}
+        {...props}
+      >
+        <img src={avatarUrl} alt="" />
+      </span>
+    )
+  }
+
   return (
     <span
       className={`user-avatar user-avatar--${size}${className ? ` ${className}` : ''}`}
       title={fullName}
       {...props}
     >
-      {getInitials(fullName) || '?'}
+      {initials}
     </span>
   )
 }

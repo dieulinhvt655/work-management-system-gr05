@@ -14,6 +14,7 @@ import LoadingScreen from '../../../components/common/LoadingScreen'
 import PermissionGate from '../../../components/common/PermissionGate'
 import UserAvatar from '../../../components/common/UserAvatar'
 import Button from '../../../components/ui/Button'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import { PERMISSIONS } from '../../../constants/permissions'
 import { USER_ACCOUNT_STATUS } from '../../../constants/users'
 import { useAuth } from '../../../context/AuthContext'
@@ -34,6 +35,7 @@ export default function UserDetailPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [showEdit, setShowEdit] = useState(false)
   const [showRole, setShowRole] = useState(false)
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false)
   const [actionError, setActionError] = useState('')
 
   const {
@@ -88,9 +90,13 @@ export default function UserDetailPage() {
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }) => updateUserStatus(id, status),
-    onSuccess: invalidateUser,
+    onSuccess: () => {
+      setActionError('')
+      setShowStatusConfirm(false)
+      invalidateUser()
+    },
     onError: (error) => {
-      window.alert(getErrorMessage(error, 'Không thể cập nhật trạng thái.'))
+      setActionError(getErrorMessage(error, 'Không thể cập nhật trạng thái.'))
     },
   })
 
@@ -113,19 +119,8 @@ export default function UserDetailPage() {
   const handleToggleLock = () => {
     if (!user) return
 
-    const isLocked = user.status === USER_ACCOUNT_STATUS.LOCKED
-    const nextStatus = isLocked
-      ? USER_ACCOUNT_STATUS.ACTIVE
-      : USER_ACCOUNT_STATUS.LOCKED
-    const label = isLocked ? 'mở khóa' : 'khóa'
-
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn ${label} tài khoản "${user.fullName}"?`,
-    )
-
-    if (!confirmed) return
-
-    updateStatusMutation.mutate({ id: user.id, status: nextStatus })
+    setActionError('')
+    setShowStatusConfirm(true)
   }
 
   if (authLoading || isLoading) {
@@ -136,7 +131,7 @@ export default function UserDetailPage() {
     return <Navigate to="/admin/users" replace />
   }
 
-  const isLocked = user.status === USER_ACCOUNT_STATUS.LOCKED
+  const isLocked = user.status === USER_ACCOUNT_STATUS.INACTIVE
 
   return (
     <PermissionRoute permission={PERMISSIONS.USER_READ}>
@@ -231,6 +226,33 @@ export default function UserDetailPage() {
             onSave={handleChangeRole}
             isSaving={updateRoleMutation.isPending}
             saveError={actionError}
+          />
+        )}
+
+        {showStatusConfirm && (
+          <ConfirmDialog
+            title={isLocked ? 'Mở khóa tài khoản?' : 'Khóa tài khoản?'}
+            description={`Bạn có chắc muốn ${
+              isLocked ? 'mở khóa' : 'khóa'
+            } tài khoản ${user.fullName}?`}
+            confirmLabel={isLocked ? 'Mở khóa' : 'Khóa tài khoản'}
+            tone={isLocked ? 'primary' : 'danger'}
+            isSaving={updateStatusMutation.isPending}
+            error={actionError}
+            onCancel={() => {
+              if (!updateStatusMutation.isPending) {
+                setShowStatusConfirm(false)
+                setActionError('')
+              }
+            }}
+            onConfirm={() =>
+              updateStatusMutation.mutate({
+                id: user.id,
+                status: isLocked
+                  ? USER_ACCOUNT_STATUS.ACTIVE
+                  : USER_ACCOUNT_STATUS.INACTIVE,
+              })
+            }
           />
         )}
       </div>

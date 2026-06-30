@@ -53,7 +53,7 @@ export default function UserTable({
         </thead>
         <tbody>
           {users.map((user) => {
-            const isLocked = user.status === USER_ACCOUNT_STATUS.LOCKED
+            const isLocked = user.status === USER_ACCOUNT_STATUS.INACTIVE
 
             return (
               <tr

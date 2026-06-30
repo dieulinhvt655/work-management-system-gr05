@@ -1,5 +1,3 @@
-import { MOCK_ROLES, MOCK_ROLE_LABELS } from '../constants/roles'
-
 export function getUserRoleName(user) {
   if (!user?.role) return ''
   if (typeof user.role === 'string') return user.role.trim()
@@ -15,7 +13,6 @@ export function isWorkspaceOwnerUser(user) {
 
   return (
     roleName === 'workspace owner' ||
-    roleName === MOCK_ROLE_LABELS[MOCK_ROLES.WORKSPACE_OWNER].toLowerCase() ||
     (roleScope === 'WORKSPACE' && roleName.includes('owner'))
   )
 }

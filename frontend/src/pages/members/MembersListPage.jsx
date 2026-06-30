@@ -1,21 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { updateUserStatus } from '../../api/usersApi'
 import {
   fetchAssignableTeams,
   fetchOrganizationMembers,
+  fetchOrganizationMemberSummary,
   updateMemberOrganization,
 } from '../../api/organizationMembersApi'
-import { fetchTeams } from '../../api/teamsApi'
 import LoadingScreen from '../../components/common/LoadingScreen'
 import Toast from '../../components/common/Toast'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import { MEMBER_ORG_STATUS } from '../../constants/members'
 import { PERMISSIONS } from '../../constants/permissions'
-import { useAuth } from '../../context/AuthContext'
+import { USER_ACCOUNT_STATUS } from '../../constants/users'
 import { useIsWorkspaceOwner } from '../../hooks/useIsWorkspaceOwner'
 import { useWorkspaceScope } from '../../hooks/useWorkspaceScope'
 import PermissionRoute from '../../routes/PermissionRoute'
 import { getErrorMessage } from '../../utils/getErrorMessage'
-import { buildMemberSummary } from '../../utils/memberMappers'
-import { attachTeamAssignmentsToMembers } from '../teams/utils/buildAssignmentCandidates'
 import EditMemberOrganizationModal from './components/EditMemberOrganizationModal'
 import MemberDetailDrawer from './components/MemberDetailDrawer'
 import MemberFilters, { FILTER_ALL } from './components/MemberFilters'
@@ -37,7 +38,6 @@ const DEFAULT_PAGE_SIZE = 10
 
 export default function MembersListPage() {
   const queryClient = useQueryClient()
-  const { user } = useAuth()
   const isWorkspaceOwner = useIsWorkspaceOwner()
   const { workspaceId } = useWorkspaceScope()
   const [filters, setFilters] = useState(INITIAL_FILTERS)
@@ -45,6 +45,7 @@ export default function MembersListPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [selectedMember, setSelectedMember] = useState(null)
   const [editingMember, setEditingMember] = useState(null)
+  const [lockingMember, setLockingMember] = useState(null)
   const [actionError, setActionError] = useState('')
   const [toastMessage, setToastMessage] = useState('')
 
@@ -109,12 +110,43 @@ export default function MembersListPage() {
     },
   })
 
+  const lockAccountMutation = useMutation({
+    mutationFn: async (member) => {
+      await updateUserStatus(member.userId, USER_ACCOUNT_STATUS.INACTIVE)
+      return updateMemberOrganization(member.id, {
+        organizationStatus: MEMBER_ORG_STATUS.INACTIVE,
+      })
+    },
+    onSuccess: (_, member) => {
+      setLockingMember(null)
+      setSelectedMember((current) =>
+        current?.id === member.id ? null : current,
+      )
+      setActionError('')
+      setToastMessage(
+        'Tài khoản đã được khóa và chuyển sang trạng thái inactive.',
+      )
+      queryClient.invalidateQueries({ queryKey: membersQueryKey })
+      queryClient.invalidateQueries({ queryKey: summaryQueryKey })
+      queryClient.invalidateQueries({ queryKey: ['organization', 'members'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+    },
+    onError: (error) => {
+      setActionError(getErrorMessage(error, 'Không thể khóa tài khoản.'))
+    },
+  })
+
   const handleSaveMember = (memberId, values) => {
     setActionError('')
     updateMutation.mutate({
       memberId,
       payload: values,
     })
+  }
+
+  const handleInactiveMember = (member) => {
+    setActionError('')
+    setLockingMember(member)
   }
 
   if (membersLoading) {
@@ -172,6 +204,7 @@ export default function MembersListPage() {
             selectedMemberId={selectedMember?.id}
             onSelect={setSelectedMember}
             onEdit={setEditingMember}
+            onInactive={handleInactiveMember}
             page={safePage}
             pageSize={pageSize}
             totalCount={filteredMembers.length}
@@ -198,6 +231,23 @@ export default function MembersListPage() {
             onSave={handleSaveMember}
             isSaving={updateMutation.isPending}
             saveError={actionError}
+          />
+        )}
+
+        {lockingMember && (
+          <ConfirmDialog
+            title="Khóa tài khoản?"
+            confirmLabel="Khóa tài khoản"
+            cancelLabel="Hủy"
+            isSaving={lockAccountMutation.isPending}
+            error={actionError}
+            onCancel={() => {
+              if (!lockAccountMutation.isPending) {
+                setLockingMember(null)
+                setActionError('')
+              }
+            }}
+            onConfirm={() => lockAccountMutation.mutate(lockingMember)}
           />
         )}
       </div>

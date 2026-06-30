@@ -135,17 +135,25 @@ export async function createUser(payload) {
   const username =
     payload.username?.trim() || deriveUsername(payload.email)
 
+  const body = {
+    fullName: payload.fullName,
+    email: payload.email,
+    username,
+    password: generateInitialPassword(username),
+    phone: payload.phone?.trim() || null,
+    roleId,
+    status: mapFrontendStatusToBackend(payload.status ?? 'ACTIVE'),
+  }
+
+  // Workspace Owner: Tự động gán account vào workspace hiện tại
+  if (payload.workspaceId) {
+    body.workspaceId = payload.workspaceId
+    body.workspaceRole = payload.role // Workspace role = role được chọn
+  }
+
   const { data } = await api.post(
     '/users',
-    {
-      fullName: payload.fullName,
-      email: payload.email,
-      username,
-      password: generateInitialPassword(username),
-      phone: payload.phone?.trim() || null,
-      roleId,
-      status: mapFrontendStatusToBackend(payload.status ?? 'ACTIVE'),
-    },
+    body,
     getAuthRequestConfig(),
   )
 

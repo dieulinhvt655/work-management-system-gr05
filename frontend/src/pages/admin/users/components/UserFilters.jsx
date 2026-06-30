@@ -1,5 +1,8 @@
 import { Search } from 'lucide-react'
-import { USER_STATUS_LABELS } from '../../../../constants/users'
+import {
+  USER_ACCOUNT_STATUS,
+  USER_STATUS_LABELS,
+} from '../../../../constants/users'
 
 const ALL = ''
 
@@ -92,12 +95,14 @@ export default function UserFilters({
             value={filters.status}
             onChange={(event) => set('status', event.target.value)}
           >
-            <option value={ALL}>Tất cả</option>
-            {Object.entries(USER_STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
+            <option value={ALL}>Đang hoạt động</option>
+            {Object.entries(USER_STATUS_LABELS)
+              .filter(([value]) => value !== USER_ACCOUNT_STATUS.ACTIVE)
+              .map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
           </select>
         </div>
       </div>

@@ -25,7 +25,7 @@ export default function MemberFilters({
         <input
           type="search"
           className="member-filters__search"
-          placeholder="Tìm theo tên, email, mã NV, vị trí..."
+          placeholder="Tìm theo tên, email, mã NV, phòng ban..."
           value={filters.search}
           onChange={(event) => set('search', event.target.value)}
           aria-label="Tìm kiếm thành viên"
@@ -53,7 +53,7 @@ export default function MemberFilters({
         onChange={(event) => set('status', event.target.value)}
         aria-label="Lọc theo trạng thái tổ chức"
       >
-        <option value={FILTER_ALL}>Tất cả trạng thái</option>
+        <option value={FILTER_ALL}>Đang hoạt động</option>
         {MEMBER_ORG_STATUS_OPTIONS.map(({ value, label }) => (
           <option key={value} value={value}>
             {label}

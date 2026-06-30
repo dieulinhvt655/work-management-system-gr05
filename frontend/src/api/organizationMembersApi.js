@@ -2,9 +2,10 @@ import {
   buildMemberSummary,
   mapWorkspaceMemberResponse,
 } from '../utils/memberMappers'
+import { attachTeamAssignmentsToMembers } from '../pages/teams/utils/buildAssignmentCandidates'
 import { fetchAllPages, unwrapApiResponse } from './apiResponse'
 import api from './axios'
-import { fetchAssignableTeams as fetchTeamsForAssignment } from './teamsApi'
+import { fetchAssignableTeams as fetchTeamsForAssignment, fetchTeams } from './teamsApi'
 import { resolveRoleIdByKey } from './rolesApi'
 import { fetchWorkspaces } from './workspacesApi'
 
@@ -42,8 +43,16 @@ async function fetchAllMembers(workspaceId) {
   return groups.flat()
 }
 
+async function enrichMembersWithTeamAssignments(members, workspaceId) {
+  if (members.length === 0) return members
+
+  const teams = await fetchTeams(workspaceId ?? undefined)
+  return attachTeamAssignmentsToMembers(members, teams)
+}
+
 export async function fetchOrganizationMembers(workspaceId) {
-  return fetchAllMembers(workspaceId)
+  const members = await fetchAllMembers(workspaceId)
+  return enrichMembersWithTeamAssignments(members, workspaceId)
 }
 
 export async function fetchAssignableTeams(workspaceId) {
@@ -51,12 +60,12 @@ export async function fetchAssignableTeams(workspaceId) {
 }
 
 export async function fetchOrganizationMemberSummary(workspaceId) {
-  const members = await fetchAllMembers(workspaceId)
+  const members = await fetchOrganizationMembers(workspaceId)
   return buildMemberSummary(members)
 }
 
 export async function fetchOrganizationMemberById(memberId) {
-  const members = await fetchAllMembers()
+  const members = await fetchOrganizationMembers()
   const member = members.find((entry) => entry.id === String(memberId))
 
   if (!member) {
@@ -86,7 +95,12 @@ export async function updateMemberOrganization(memberId, payload) {
     body,
   )
 
-  return mapWorkspaceMemberResponse(unwrapApiResponse({ data }))
+  const updated = mapWorkspaceMemberResponse(unwrapApiResponse({ data }))
+  const [enriched] = await enrichMembersWithTeamAssignments(
+    [updated],
+    member.workspaceId,
+  )
+  return enriched ?? updated
 }
 
 export async function addWorkspaceMember(workspaceId, { userId, roleId }) {

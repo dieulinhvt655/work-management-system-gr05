@@ -1,19 +1,21 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Pencil } from 'lucide-react'
+import { ArrowLeft, Lock, LockOpen, Pencil } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { updateUserStatus } from '../../api/usersApi'
 import {
   fetchAssignableTeams,
   fetchOrganizationMemberById,
   updateMemberOrganization,
 } from '../../api/organizationMembersApi'
 import LoadingScreen from '../../components/common/LoadingScreen'
-import PermissionGate from '../../components/common/PermissionGate'
 import Toast from '../../components/common/Toast'
 import UserAvatar from '../../components/common/UserAvatar'
 import Button from '../../components/ui/Button'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import { MEMBER_ORG_STATUS } from '../../constants/members'
 import { PERMISSIONS } from '../../constants/permissions'
-import { USER_ROLE_LABELS } from '../../constants/users'
+import { USER_ACCOUNT_STATUS, USER_ROLE_LABELS } from '../../constants/users'
 import PermissionRoute from '../../routes/PermissionRoute'
 import { getErrorMessage } from '../../utils/getErrorMessage'
 import EditMemberOrganizationModal from './components/EditMemberOrganizationModal'
@@ -29,6 +31,7 @@ export default function MemberDetailPage() {
   const { memberId } = useParams()
   const queryClient = useQueryClient()
   const [showEdit, setShowEdit] = useState(false)
+  const [pendingStatusAction, setPendingStatusAction] = useState(null)
   const [actionError, setActionError] = useState('')
   const [toastMessage, setToastMessage] = useState('')
 
@@ -63,6 +66,40 @@ export default function MemberDetailPage() {
     },
   })
 
+  const statusMutation = useMutation({
+    mutationFn: async ({ nextStatus }) => {
+      await updateUserStatus(member.userId, nextStatus)
+      return updateMemberOrganization(member.id, {
+        organizationStatus:
+          nextStatus === USER_ACCOUNT_STATUS.ACTIVE
+            ? MEMBER_ORG_STATUS.ACTIVE
+            : MEMBER_ORG_STATUS.INACTIVE,
+      })
+    },
+    onSuccess: (_, variables) => {
+      setPendingStatusAction(null)
+      setActionError('')
+      setToastMessage(
+        variables.nextStatus === USER_ACCOUNT_STATUS.ACTIVE
+          ? 'Tài khoản đã được mở khóa.'
+          : 'Tài khoản đã được khóa và chuyển sang trạng thái inactive.',
+      )
+      queryClient.invalidateQueries({ queryKey: memberQueryKey(memberId) })
+      queryClient.invalidateQueries({ queryKey: ['organization', 'members'] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+    },
+    onError: (error, variables) => {
+      setActionError(
+        getErrorMessage(
+          error,
+          variables?.nextStatus === USER_ACCOUNT_STATUS.ACTIVE
+            ? 'Không thể mở khóa tài khoản.'
+            : 'Không thể khóa tài khoản.',
+        ),
+      )
+    },
+  })
+
   if (isLoading) {
     return <LoadingScreen />
   }
@@ -70,6 +107,30 @@ export default function MemberDetailPage() {
   if (isError || !member) {
     return <Navigate to="/members" replace />
   }
+
+  const isInactiveAccount =
+    member.accountStatus === USER_ACCOUNT_STATUS.INACTIVE ||
+    member.organizationStatus === MEMBER_ORG_STATUS.INACTIVE
+  const statusAction = isInactiveAccount
+    ? {
+        title: 'Mở khóa tài khoản?',
+        label: 'Mở khóa',
+        confirmLabel: 'Mở khóa',
+        nextStatus: USER_ACCOUNT_STATUS.ACTIVE,
+        icon: LockOpen,
+        tone: 'primary',
+        buttonVariant: 'ghost',
+      }
+    : {
+        title: 'Khóa tài khoản?',
+        label: 'Khóa tài khoản',
+        confirmLabel: 'Khóa tài khoản',
+        nextStatus: USER_ACCOUNT_STATUS.INACTIVE,
+        icon: Lock,
+        tone: 'danger',
+        buttonVariant: 'danger',
+      }
+  const StatusActionIcon = statusAction.icon
 
   return (
     <PermissionRoute permission={PERMISSIONS.MEMBER_READ}>
@@ -100,17 +161,33 @@ export default function MemberDetailPage() {
               </div>
             </div>
 
-            <PermissionGate permission={PERMISSIONS.MEMBER_MANAGE}>
+            <div className="member-detail-page__actions">
               <Button
                 type="button"
                 variant="ghost"
-                className="member-detail-page__edit-btn"
-                onClick={() => setShowEdit(true)}
+                className="member-detail-page__action-btn"
+                onClick={() => {
+                  setActionError('')
+                  setShowEdit(true)
+                }}
               >
                 <Pencil size={16} aria-hidden="true" />
-                Cập nhật tổ chức
+                Chỉnh sửa
               </Button>
-            </PermissionGate>
+
+              <Button
+                type="button"
+                variant={statusAction.buttonVariant}
+                className="member-detail-page__action-btn"
+                onClick={() => {
+                  setActionError('')
+                  setPendingStatusAction(statusAction)
+                }}
+              >
+                <StatusActionIcon size={16} aria-hidden="true" />
+                {statusAction.label}
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -162,6 +239,28 @@ export default function MemberDetailPage() {
             onSave={(id, payload) => updateMutation.mutate({ id, payload })}
             isSaving={updateMutation.isPending}
             saveError={actionError}
+          />
+        )}
+
+        {pendingStatusAction && (
+          <ConfirmDialog
+            title={pendingStatusAction.title}
+            confirmLabel={pendingStatusAction.confirmLabel}
+            cancelLabel="Hủy"
+            tone={pendingStatusAction.tone}
+            isSaving={statusMutation.isPending}
+            error={actionError}
+            onCancel={() => {
+              if (!statusMutation.isPending) {
+                setPendingStatusAction(null)
+                setActionError('')
+              }
+            }}
+            onConfirm={() =>
+              statusMutation.mutate({
+                nextStatus: pendingStatusAction.nextStatus,
+              })
+            }
           />
         )}
       </div>

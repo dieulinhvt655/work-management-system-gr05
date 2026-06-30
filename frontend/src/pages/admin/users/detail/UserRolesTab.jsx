@@ -3,7 +3,6 @@ import { useOutletContext } from 'react-router-dom'
 import { fetchRoleById } from '../../../../api/rolesApi'
 import LoadingScreen from '../../../../components/common/LoadingScreen'
 import { useAuth } from '../../../../context/AuthContext'
-import { MOCK_ROLE_LABELS } from '../../../../constants/roles'
 import { USER_ROLE_LABELS } from '../../../../constants/users'
 import UserStatusBadge from '../components/UserStatusBadge'
 
@@ -13,7 +12,6 @@ export default function UserRolesTab() {
   const roleLabel =
     user.roleName ??
     USER_ROLE_LABELS[user.role] ??
-    MOCK_ROLE_LABELS[user.role] ??
     user.role
 
   const { data: role, isLoading } = useQuery({

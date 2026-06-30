@@ -38,6 +38,11 @@ export default function AssignAccountsToWorkspacePage() {
   const [selectedUserIds, setSelectedUserIds] = useState([])
   const [toastMessage, setToastMessage] = useState('')
   const [formError, setFormError] = useState('')
+  const assignedUsersQueryKey = [
+    'admin',
+    'workspace-member-user-ids',
+    workspaceId,
+  ]
 
   const { data: workspaces = [], isLoading: workspacesLoading } = useQuery({
     queryKey: ['admin', 'workspaces'],
@@ -57,7 +62,7 @@ export default function AssignAccountsToWorkspacePage() {
 
   const { data: assignedUserIds = new Set(), isLoading: membersLoading } =
     useQuery({
-      queryKey: ['admin', 'workspace-member-user-ids', workspaceId],
+      queryKey: assignedUsersQueryKey,
       queryFn: () => fetchWorkspaceMemberUserIds(workspaceId),
       enabled: Boolean(workspaceId),
     })
@@ -80,7 +85,7 @@ export default function AssignAccountsToWorkspacePage() {
     const query = search.trim().toLowerCase()
 
     return users.filter((user) => {
-      if (assignedUserIds.has(user.id)) return false
+      if (assignedUserIds.has(String(user.id))) return false
       if (!query) return true
 
       return [user.fullName, user.email, user.employeeCode, user.username]
@@ -97,14 +102,22 @@ export default function AssignAccountsToWorkspacePage() {
         userIds,
         roleId: Number(selectedRoleId),
       }),
-    onSuccess: (results) => {
+    onSuccess: (results, variables) => {
       const successCount = results.filter((item) => item.success).length
       const failedCount = results.length - successCount
+      const successfulUserIds = results
+        .filter((item) => item.success)
+        .map((item) => String(item.userId))
 
       setSelectedUserIds([])
       setFormError('')
+      queryClient.setQueryData(
+        ['admin', 'workspace-member-user-ids', variables.workspaceId],
+        (current = new Set()) =>
+          new Set([...current].map(String).concat(successfulUserIds)),
+      )
       queryClient.invalidateQueries({
-        queryKey: ['admin', 'workspace-member-user-ids', workspaceId],
+        queryKey: ['admin', 'workspace-member-user-ids', variables.workspaceId],
       })
       queryClient.invalidateQueries({ queryKey: ['organization', 'members'] })
 
@@ -122,15 +135,16 @@ export default function AssignAccountsToWorkspacePage() {
   })
 
   const toggleUser = (userId) => {
+    const normalizedUserId = String(userId)
     setSelectedUserIds((current) =>
-      current.includes(userId)
-        ? current.filter((id) => id !== userId)
-        : [...current, userId],
+      current.includes(normalizedUserId)
+        ? current.filter((id) => id !== normalizedUserId)
+        : [...current, normalizedUserId],
     )
   }
 
   const toggleAllVisible = () => {
-    const visibleIds = availableUsers.map((user) => user.id)
+    const visibleIds = availableUsers.map((user) => String(user.id))
     const allSelected = visibleIds.every((id) => selectedUserIds.includes(id))
 
     if (allSelected) {
@@ -175,7 +189,7 @@ export default function AssignAccountsToWorkspacePage() {
 
   const visibleAllSelected =
     availableUsers.length > 0 &&
-    availableUsers.every((user) => selectedUserIds.includes(user.id))
+    availableUsers.every((user) => selectedUserIds.includes(String(user.id)))
 
   const showEmptyState = !workspaceId || membersLoading || availableUsers.length === 0
 
@@ -293,7 +307,7 @@ export default function AssignAccountsToWorkspacePage() {
             ) : (
               <ul className="assign-accounts-list">
                 {availableUsers.map((user) => {
-                  const checked = selectedUserIds.includes(user.id)
+                  const checked = selectedUserIds.includes(String(user.id))
 
                   return (
                     <li key={user.id}>
