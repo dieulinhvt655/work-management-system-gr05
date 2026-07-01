@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Info, LayoutPanelTop, ListTodo, Rocket, UserRound, Users, Workflow } from 'lucide-react'
 import { createProject } from '../../api/projectsApi'
-import { fetchTeams } from '../../api/teamsApi'
+import { fetchTeamMembers, fetchTeams } from '../../api/teamsApi'
 import LoadingScreen from '../../components/common/LoadingScreen'
 import { PERMISSIONS } from '../../constants/permissions'
 import { useAuth } from '../../context/AuthContext'
@@ -64,21 +64,47 @@ export default function CreateProjectPage() {
   }, [managedTeams, teams, user])
 
   const selectedTeamId = values.teamId || teamOptions[0]?.id || ''
+  const selectedTeam = useMemo(
+    () => teamOptions.find((team) => String(team.id) === String(selectedTeamId)),
+    [selectedTeamId, teamOptions],
+  )
+  const selectedWorkspaceId = selectedTeam?.workspaceId ?? user?.workspaceId
+
+  const {
+    data: selectedTeamMembers = [],
+    isLoading: membersLoading,
+    isError: membersIsError,
+    error: membersError,
+  } = useQuery({
+    queryKey: ['teams', selectedWorkspaceId, selectedTeamId, 'members'],
+    queryFn: () => fetchTeamMembers(selectedWorkspaceId, selectedTeamId),
+    enabled:
+      isAuthenticated &&
+      !authLoading &&
+      Boolean(selectedWorkspaceId) &&
+      Boolean(selectedTeamId),
+  })
+
+  const creatorTeamMember = useMemo(() => {
+    if (!user?.id) return null
+    return selectedTeamMembers.find(
+      (member) => String(member.userId) === String(user.id),
+    ) ?? null
+  }, [selectedTeamMembers, user?.id])
+  const fallbackProjectManagerMemberId =
+    creatorTeamMember?.id ?? user?.workspaceMemberId ?? user?.id ?? 1
 
   const createMutation = useMutation({
     mutationFn: (payload) => {
-      const team = teamOptions.find(
-        (entry) => String(entry.id) === String(payload.teamId),
-      )
       return createProject(
-        team?.workspaceId ?? user?.workspaceId,
+        selectedWorkspaceId,
         payload.teamId,
         payload,
       )
     },
     onSuccess: (project) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
-      navigate(project?.id ? `/projects/${project.id}/members` : '/projects', {
+      navigate(project?.id ? `/projects/${project.id}/overview` : '/projects', {
         replace: true,
       })
     },
@@ -117,7 +143,15 @@ export default function CreateProjectPage() {
   const handleSubmit = (event) => {
     event.preventDefault()
     if (!validate()) return
-    createMutation.mutate({ ...values, teamId: selectedTeamId })
+    createMutation.mutate({
+      ...values,
+      teamId: selectedTeamId,
+      projectManagerMemberId: fallbackProjectManagerMemberId,
+      teamName: selectedTeam?.name,
+      currentUserId: user?.id,
+      currentUserName: user?.fullName,
+      currentUserEmail: user?.email,
+    })
   }
 
   if (authLoading) {
@@ -175,6 +209,17 @@ export default function CreateProjectPage() {
                     </option>
                   ))}
                 </select>
+                {membersLoading && (
+                  <p className="field__hint">Đang xác định Project Manager từ thành viên Team...</p>
+                )}
+                {membersIsError && (
+                  <p className="field__hint">
+                    {getErrorMessage(
+                      membersError,
+                      'Không tải được thành viên Team, đang dùng dữ liệu mock để test.',
+                    )}
+                  </p>
+                )}
                 {fieldErrors.teamId && <p className="field__error">{fieldErrors.teamId}</p>}
               </div>
 
@@ -288,7 +333,11 @@ export default function CreateProjectPage() {
                     <h2>{values.name.trim() || 'Tên dự án mới'}</h2>
                     <span className="project-status project-status--draft">Draft</span>
                   </div>
-                  <PreviewRow icon={UserRound} label="PM" value="Chưa gán" />
+                  <PreviewRow
+                    icon={UserRound}
+                    label="PM"
+                    value={creatorTeamMember?.fullName || user?.fullName || 'Mock PM'}
+                  />
                   <PreviewRow icon={Users} label="Thành viên" value="0" />
                   <PreviewRow icon={Workflow} label="Workflow" value="Mặc định" />
                   <PreviewRow icon={ListTodo} label="Backlog" value="Tự khởi tạo" />

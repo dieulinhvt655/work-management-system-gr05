@@ -8,10 +8,10 @@ export const PROJECT_TABS = [
     permission: PERMISSIONS.PROJECT_READ,
   },
   {
-    id: 'my-tasks',
-    label: 'My Tasks',
-    path: 'my-tasks',
-    permission: PERMISSIONS.MYWORK_READ,
+    id: 'members',
+    label: 'Thành viên',
+    path: 'members',
+    permission: PERMISSIONS.PROJECT_READ,
   },
   {
     id: 'backlog',
@@ -20,26 +20,14 @@ export const PROJECT_TABS = [
     permission: PERMISSIONS.BACKLOG_READ,
   },
   {
-    id: 'sprint',
-    label: 'Sprint',
-    path: 'sprint',
-    permission: PERMISSIONS.SPRINT_READ,
-  },
-  {
-    id: 'members',
-    label: 'Thành viên dự án',
-    path: 'members',
-    permission: PERMISSIONS.PROJECT_READ,
-  },
-  {
     id: 'docs',
-    label: 'Docs',
+    label: 'Tài liệu',
     path: 'docs',
     permission: PERMISSIONS.PROJECT_DOC_READ,
   },
   {
     id: 'activity',
-    label: 'Activity Log',
+    label: 'Lịch sử hoạt động',
     path: 'activity',
     permission: PERMISSIONS.PROJECT_ACTIVITY_READ,
   },
