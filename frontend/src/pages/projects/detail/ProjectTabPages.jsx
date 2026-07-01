@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  CircleAlert,
   CalendarDays,
   CheckCircle2,
   Edit3,
@@ -17,6 +18,14 @@ import {
   Trash2,
   TrendingUp,
   UserCheck,
+  UserPlus,
+  ShieldCheck,
+  Clock3,
+  Users,
+  ChevronRight,
+  MoreHorizontal,
+  Share2,
+  X,
 } from 'lucide-react'
 import {
   addProjectMember,
@@ -45,6 +54,7 @@ import Button from '../../../components/ui/Button'
 import Modal from '../../../components/ui/Modal'
 import SelectField from '../../../components/ui/SelectField'
 import TextField from '../../../components/ui/TextField'
+import UserAvatar from '../../../components/common/UserAvatar'
 import { PERMISSIONS } from '../../../constants/permissions'
 import { PROJECT_STATUS, PROJECT_STATUS_LABELS } from '../../../constants/projects'
 import { usePermission } from '../../../hooks/usePermission'
@@ -86,15 +96,17 @@ function EmptyState({ children }) {
 function ProjectTabShell({ title, description, actions, children }) {
   return (
     <div className="project-tab-page">
-      <header className="project-tab-page__header project-tab-page__header--row">
-        <div>
-          <h2>{title}</h2>
-          {description && (
-            <p className="project-tab-page__desc">{description}</p>
-          )}
-        </div>
-        {actions}
-      </header>
+      {(title || description || actions) && (
+        <header className="project-tab-page__header project-tab-page__header--row">
+          <div>
+            {title && <h2>{title}</h2>}
+            {description && (
+              <p className="project-tab-page__desc">{description}</p>
+            )}
+          </div>
+          {actions}
+        </header>
+      )}
       {children}
     </div>
   )
@@ -521,11 +533,24 @@ function BacklogBadge({ value, tone = 'neutral' }) {
   )
 }
 
+function splitCriteriaText(value) {
+  if (!value) return []
+  return String(value)
+    .split(/\n|;|,/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
 export function ProjectOverviewPage() {
   const { project } = useProject()
   const { data: dashboard } = useQuery({
     queryKey: ['projects', project?.id, 'dashboard'],
     queryFn: () => fetchProjectDashboard(project),
+    enabled: Boolean(project),
+  })
+  const { data: projectMembers = project?.members ?? [] } = useQuery({
+    queryKey: ['projects', project?.id, 'members', 'overview'],
+    queryFn: () => fetchProjectMembers(project),
     enabled: Boolean(project),
   })
   const { data: activityLogs = [] } = useQuery({
@@ -550,9 +575,10 @@ export function ProjectOverviewPage() {
 
   const objectiveItems = splitDetailText(project?.objective)
   const scopeItems = splitDetailText(project?.scope)
-  const projectManager = project?.members?.find(
+  const projectManager = projectMembers.find(
     (member) => String(member.id) === String(project?.managerMemberId),
   )
+  const recentMembers = projectMembers.slice(0, 4)
   const allTasks = useMemo(
     () =>
       backlogGroups.flatMap((group) =>
@@ -564,214 +590,48 @@ export function ProjectOverviewPage() {
       ),
     [backlogGroups],
   )
-  const tasksByStatus = useMemo(() => {
-    const groups = {
-      TO_DO: [],
-      IN_PROGRESS: [],
-      REVIEW: [],
-      DONE: [],
-    }
-
-    for (const task of allTasks) {
-      if (task.status === 'DONE') {
-        groups.DONE.push(task)
-      } else if (task.status === 'REVIEW') {
-        groups.REVIEW.push(task)
-      } else if (task.status === 'IN_PROGRESS') {
-        groups.IN_PROGRESS.push(task)
-      } else {
-        groups.TO_DO.push(task)
-      }
-    }
-
-    return groups
-  }, [allTasks])
-  const taskBreakdown = dashboard?.taskBreakdown ?? {}
   const totalTasks = dashboard?.totalTasks ?? allTasks.length
-  const completedTasks = taskBreakdown.done ?? tasksByStatus.DONE.length
-  const inProgressTasks = taskBreakdown.inProgress ?? tasksByStatus.IN_PROGRESS.length
-  const todoTasks = taskBreakdown.todo ?? tasksByStatus.TO_DO.length
-  const weeklyPoints = [12, 19, 15, 25, 22, 18, 24]
 
   return (
-    <PermissionRoute permission={PERMISSIONS.PROJECT_READ}>
-      <ProjectTabShell
-        title="Dashboard"
-        description="Welcome back! Đây là tình hình vận hành hiện tại của dự án."
-        actions={
-          <Link to={`/projects/${project?.id}/backlog`} className="btn btn--primary">
-            <Plus size={16} aria-hidden="true" />
-            Create Task
-          </Link>
-        }
-      >
-        <div className="project-dashboard-search">
-          <Search size={16} aria-hidden="true" />
-          <input type="search" placeholder="Search tasks, projects, or people..." />
-        </div>
-
-        <div className="project-dashboard-kpis">
-          <article>
-            <span className="project-dashboard-kpi__icon project-dashboard-kpi__icon--blue">
-              <ListTodo size={18} aria-hidden="true" />
+    <>
+      <ProjectTabShell>
+        <div className="project-detail-stats">
+          <article className="project-detail-stat">
+            <span className="project-detail-stat__icon">
+              <UserCheck size={18} aria-hidden="true" />
             </span>
-            <strong>{totalTasks}</strong>
-            <p>Total Tasks</p>
-            <small>+12%</small>
+            <div>
+              <p>Tổng thành viên</p>
+              <strong>{projectMembers.length}</strong>
+            </div>
           </article>
-          <article>
-            <span className="project-dashboard-kpi__icon project-dashboard-kpi__icon--green">
+          <article className="project-detail-stat">
+            <span className="project-detail-stat__icon">
               <CheckCircle2 size={18} aria-hidden="true" />
             </span>
-            <strong>{completedTasks}</strong>
-            <p>Completed</p>
-            <small>+8%</small>
+            <div>
+              <p>Số task</p>
+              <strong>{totalTasks}</strong>
+            </div>
           </article>
-          <article>
-            <span className="project-dashboard-kpi__icon project-dashboard-kpi__icon--orange">
+          <article className="project-detail-stat">
+            <span className="project-detail-stat__icon">
               <TrendingUp size={18} aria-hidden="true" />
             </span>
-            <strong>{inProgressTasks}</strong>
-            <p>In Progress</p>
-            <small>{tasksByStatus.REVIEW.length}</small>
+            <div>
+              <p>Workflow Status</p>
+              <strong>{dashboard?.completionPercent ?? 0}%</strong>
+            </div>
           </article>
-          <article>
-            <span className="project-dashboard-kpi__icon project-dashboard-kpi__icon--purple">
+          <article className="project-detail-stat">
+            <span className="project-detail-stat__icon project-detail-stat__icon--warm">
               <FolderKanban size={18} aria-hidden="true" />
             </span>
-            <strong>{todoTasks}</strong>
-            <p>To-do</p>
-            <small>+2</small>
-          </article>
-        </div>
-
-        <div className="project-dashboard-charts">
-          <section>
-            <header>
-              <h3>Task Completion Rate</h3>
-              <select aria-label="Khoảng thời gian">
-                <option>Last 7 days</option>
-                <option>Last 30 days</option>
-              </select>
-            </header>
-            <div className="project-dashboard-rate">
-              <strong>{dashboard?.completionPercent ?? 0}%</strong>
-              <span style={{ width: `${dashboard?.completionPercent ?? 0}%` }} />
-            </div>
-            <p>{project?.name}</p>
-          </section>
-
-          <section>
-            <header>
-              <h3>Task Distribution</h3>
-              <button type="button" className="icon-btn" aria-label="Tùy chọn">
-                ...
-              </button>
-            </header>
-            <div className="project-dashboard-distribution">
-              {[
-                ['To Do', todoTasks],
-                ['In Progress', inProgressTasks],
-                ['Review', tasksByStatus.REVIEW.length],
-                ['Done', completedTasks],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <span>{label}</span>
-                  <strong>{value}</strong>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <section className="project-task-board">
-          <header>
-            <h3>Active Tasks Board</h3>
             <div>
-              <button type="button" className="btn btn--ghost">
-                <Filter size={16} aria-hidden="true" />
-                Filter
-              </button>
-              <button type="button" className="btn btn--ghost">
-                Sort
-              </button>
+              <p>Backlog items</p>
+              <strong>{backlogGroups.length}</strong>
             </div>
-          </header>
-
-          <div className="project-task-board__columns">
-            {[
-              ['TO_DO', 'To Do', 'project-task-board__dot--gray'],
-              ['IN_PROGRESS', 'In Progress', 'project-task-board__dot--blue'],
-              ['REVIEW', 'Review', 'project-task-board__dot--orange'],
-              ['DONE', 'Done', 'project-task-board__dot--green'],
-            ].map(([status, label, dotClass]) => (
-              <section key={status} className="project-task-column">
-                <header>
-                  <h4>
-                    <span className={`project-task-board__dot ${dotClass}`} />
-                    {label}
-                    <small>{tasksByStatus[status].length}</small>
-                  </h4>
-                  <Link to={`/projects/${project?.id}/backlog`}>+</Link>
-                </header>
-                <div className="project-task-column__cards">
-                  {tasksByStatus[status].slice(0, 4).map((task) => (
-                    <article key={task.id} className="project-task-card">
-                      <h5>{task.title}</h5>
-                      <p>{task.description || task.pbiTitle}</p>
-                      <div>
-                        <BacklogBadge value={task.pbiType || task.priority} tone="info" />
-                        <span>{task.assigneeName || 'Chưa gán'}</span>
-                      </div>
-                    </article>
-                  ))}
-                  {tasksByStatus[status].length === 0 && (
-                    <p className="project-task-column__empty">Chưa có task.</p>
-                  )}
-                </div>
-              </section>
-            ))}
-          </div>
-        </section>
-
-        <div className="project-dashboard-bottom">
-          <section className="project-detail-card">
-            <h3>Recent Activity</h3>
-            <div className="project-detail-activity">
-              {activityLogs.length > 0 ? (
-                activityLogs.map((log) => (
-                  <article key={log.id}>
-                    <CalendarDays size={14} aria-hidden="true" />
-                    <div>
-                      <strong>{log.actorName}</strong>
-                      <p>{formatActivityAction(log)}</p>
-                      <small>{formatDate(log.createdAt)}</small>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <p>Chưa có hoạt động nào.</p>
-              )}
-            </div>
-          </section>
-
-          <section className="project-detail-card">
-            <h3>Weekly Progress</h3>
-            <div className="project-weekly-chart">
-              {weeklyPoints.map((point, index) => (
-                <span
-                  key={`${point}-${index}`}
-                  style={{ height: `${point * 4}px` }}
-                  title={`${point} tasks`}
-                />
-              ))}
-            </div>
-            <div className="project-weekly-labels">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                <span key={day}>{day}</span>
-              ))}
-            </div>
-          </section>
+          </article>
         </div>
 
         <div className="project-detail-grid project-dashboard-info">
@@ -891,7 +751,7 @@ export function ProjectOverviewPage() {
           </aside>
         </div>
       </ProjectTabShell>
-    </PermissionRoute>
+    </>
   )
 }
 
@@ -1124,28 +984,47 @@ export function ProjectBacklogPage() {
 
   const itemSaving = createItemMutation.isPending || updateItemMutation.isPending
   const taskSaving = createTaskMutation.isPending || updateTaskMutation.isPending
+  const selectedAcceptanceCriteria = splitCriteriaText(selectedItem?.description)
+  const selectedTaskCount = selectedTasks.length
+  const selectedStoryPoints =
+    selectedItem?.storyPoints ?? selectedTaskCount ?? '—'
 
   return (
-    <PermissionRoute permission={PERMISSIONS.BACKLOG_READ}>
-      <ProjectTabShell
-        title="Product Backlog"
-        description={backlog?.description}
-        actions={
-          canManageBacklog ? (
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => {
-                setActionError('')
-                setItemModal({ item: null })
-              }}
-            >
-              <Plus size={16} aria-hidden="true" />
-              Tạo PBI
-            </Button>
-          ) : null
-        }
-      >
+    <>
+      <div className="project-backlog-page">
+        <header className="project-backlog-hero">
+          <div className="project-backlog-hero__crumbs">
+            <span>1. Dự án</span>
+            <ChevronRight size={14} aria-hidden="true" />
+            <span>3. {project?.name ?? 'Alpha Core'}</span>
+          </div>
+          <div className="project-backlog-hero__top">
+            <div>
+              <h1>Product Backlog</h1>
+              <p>{backlog?.description || 'Danh sách PBI và chi tiết phân rã task của dự án.'}</p>
+            </div>
+            {canManageBacklog && (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  setActionError('')
+                  setItemModal({ item: null })
+                }}
+              >
+                <Plus size={16} aria-hidden="true" />
+                Tạo PBI
+              </Button>
+            )}
+          </div>
+          <nav className="project-backlog-tabs" aria-label="Backlog tabs">
+            <span>Tổng quan</span>
+            <span className="project-backlog-tabs__active">Backlog</span>
+            <span>Sprint hiện tại</span>
+            <span>Báo cáo</span>
+          </nav>
+        </header>
+
         {actionError && (
           <p className="modal__error" role="alert">
             {actionError}
@@ -1304,44 +1183,37 @@ export function ProjectBacklogPage() {
             {selectedItem ? (
               <>
                 <div className="backlog-detail-panel__top">
-                  <BacklogBadge value={`PBI-${selectedItem.id}`} tone="info" />
-                  {canManageBacklog && (
-                    <div className="project-row-actions">
-                      <button
-                        type="button"
-                        className="icon-btn"
-                        onClick={() => setItemModal({ item: selectedItem })}
-                        aria-label="Sửa PBI đang chọn"
-                      >
-                        <Edit3 size={16} aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-btn"
-                        onClick={() => {
-                          if (window.confirm('Xóa Product Backlog Item này?')) {
-                            deleteItemMutation.mutate(selectedItem)
-                          }
-                        }}
-                        aria-label="Xóa PBI đang chọn"
-                        disabled={deleteItemMutation.isPending}
-                      >
-                        <Trash2 size={16} aria-hidden="true" />
-                      </button>
+                  <div className="backlog-detail-panel__chips">
+                    <BacklogBadge value={`PBI-${selectedItem.id}`} tone="info" />
+                    <div className="backlog-detail-panel__avatars">
+                      <UserAvatar fullName={selectedItem.proposerName || 'Mock User'} size="sm" />
+                      <span>+1</span>
                     </div>
-                  )}
+                  </div>
+                  <div className="backlog-detail-panel__icons">
+                    <button type="button" className="icon-btn" aria-label="Chia sẻ">
+                      <Share2 size={16} aria-hidden="true" />
+                    </button>
+                    <button type="button" className="icon-btn" aria-label="Khác">
+                      <MoreHorizontal size={16} aria-hidden="true" />
+                    </button>
+                    <button type="button" className="icon-btn" aria-label="Đóng">
+                      <X size={16} aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
 
                 <h3 className="backlog-detail-panel__title">{selectedItem.title}</h3>
-                <div className="backlog-detail-meta">
-                  <span>Trạng thái</span>
-                  <BacklogBadge value={selectedItem.status} tone="info" />
-                  <span>Loại</span>
-                  <BacklogBadge value={selectedItem.type} tone="purple" />
-                  <span>Độ ưu tiên</span>
-                  <BacklogBadge value={selectedItem.priority} tone="warning" />
-                  <span>Ngày mong muốn</span>
-                  <strong>{formatDate(selectedItem.desiredDueDate)}</strong>
+
+                <div className="backlog-detail-summary">
+                  <div>
+                    <span>Trạng thái</span>
+                    <BacklogBadge value={selectedItem.status} tone="info" />
+                  </div>
+                  <div>
+                    <span>Story Points</span>
+                    <strong>{selectedStoryPoints}</strong>
+                  </div>
                 </div>
 
                 <section className="backlog-detail-section">
@@ -1349,24 +1221,27 @@ export function ProjectBacklogPage() {
                   <p>{selectedItem.description || 'Chưa có mô tả.'}</p>
                 </section>
 
-                {canManageBacklog && selectedItem.status !== 'READY' && (
-                  <button
-                    type="button"
-                    className="btn btn--primary backlog-ready-btn"
-                    onClick={() => markReadyMutation.mutate(selectedItem)}
-                    disabled={markReadyMutation.isPending || selectedTasks.length === 0}
-                  >
-                    <CheckCircle2 size={16} aria-hidden="true" />
-                    {markReadyMutation.isPending
-                      ? 'Đang xác nhận...'
-                      : 'Xác nhận PBI Ready'}
-                  </button>
-                )}
+                <section className="backlog-detail-section">
+                  <h4>Tiêu chí chấp nhận</h4>
+                  {selectedAcceptanceCriteria.length > 0 ? (
+                    <ul className="backlog-criteria-list">
+                      {selectedAcceptanceCriteria.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul className="backlog-criteria-list">
+                      <li>Gắn mô tả rõ ràng, tập trung vào hành vi cần hoàn thành.</li>
+                      <li>Chưa có checklist tiêu chí, hãy bổ sung khi cần.</li>
+                      <li>Task được phân rã trước khi chuyển sang Ready.</li>
+                    </ul>
+                  )}
+                </section>
 
                 <section className="backlog-detail-section">
                   <div className="backlog-detail-section__header">
-                    <h4>Phân rã task</h4>
-                    <span>{selectedTasks.length} task</span>
+                    <h4>Phân rã Task</h4>
+                    <span>{selectedTaskCount}/{selectedTaskCount} đã chuẩn bị</span>
                   </div>
                   {tasksLoading ? (
                     <p className="project-tab-empty">Đang tải task...</p>
@@ -1374,15 +1249,19 @@ export function ProjectBacklogPage() {
                     <p className="project-tab-empty">PBI chưa có task.</p>
                   ) : (
                     <div className="backlog-task-list">
-                      {selectedTasks.map((task) => (
+                      {selectedTasks.map((task, index) => (
                         <article key={task.id} className="backlog-task-card">
-                          <div>
-                            <span>{task.id}</span>
-                            <strong>{task.title}</strong>
-                            <small>{task.assigneeName || 'Chưa gán'} · {statusText(task.status)}</small>
+                          <div className="backlog-task-card__left">
+                            <span className="backlog-task-card__tag">
+                              T{index + 1}
+                            </span>
+                            <div>
+                              <strong>{task.title}</strong>
+                              <small>{task.assigneeName || 'Chưa gán'}</small>
+                            </div>
                           </div>
                           {canManageBacklog && (
-                            <div className="project-row-actions">
+                            <div className="backlog-task-card__right">
                               <select
                                 className="backlog-task-assignee"
                                 value={task.assigneeMemberId ?? ''}
@@ -1443,10 +1322,22 @@ export function ProjectBacklogPage() {
                       }}
                     >
                       <Plus size={16} aria-hidden="true" />
-                      Thêm task
+                      Thêm Task
                     </button>
                   )}
                 </section>
+
+                {canManageBacklog && selectedItem.status !== 'READY' && (
+                  <button
+                    type="button"
+                    className="btn btn--primary backlog-ready-btn"
+                    onClick={() => markReadyMutation.mutate(selectedItem)}
+                    disabled={markReadyMutation.isPending || selectedTasks.length === 0}
+                  >
+                    <CheckCircle2 size={16} aria-hidden="true" />
+                    {markReadyMutation.isPending ? 'Đang đánh dấu...' : 'Đánh dấu Ready'}
+                  </button>
+                )}
               </>
             ) : (
               <EmptyState>Chọn một PBI để xem chi tiết và phân rã task.</EmptyState>
@@ -1484,8 +1375,8 @@ export function ProjectBacklogPage() {
             error={actionError}
           />
         )}
-      </ProjectTabShell>
-    </PermissionRoute>
+      </div>
+    </>
   )
 }
 
@@ -1612,6 +1503,9 @@ export function ProjectMembersPage() {
   const { can } = usePermission()
   const queryClient = useQueryClient()
   const [showAdd, setShowAdd] = useState(false)
+  const [keyword, setKeyword] = useState('')
+  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [sortBy, setSortBy] = useState('JOINED_DESC')
   const [actionError, setActionError] = useState('')
 
   const canManageMembers =
@@ -1682,61 +1576,278 @@ export function ProjectMembersPage() {
     },
   })
 
+  const memberStats = useMemo(() => {
+    const total = members.length
+    const active = members.filter((member) => member.status === 'ACTIVE').length
+    const inactive = total - active
+    const managers = members.filter(
+      (member) =>
+        member.isLeader ||
+        String(member.roleName ?? '').toLowerCase().includes('manager'),
+    ).length
+
+    return { total, active, inactive, managers }
+  }, [members])
+
+  const filteredMembers = useMemo(() => {
+    const normalized = keyword.trim().toLowerCase()
+    const byKeyword = !normalized
+      ? members
+      : members.filter((member) =>
+          [member.fullName, member.email, member.roleName, member.employeeCode]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(normalized)),
+        )
+
+    const byStatus =
+      statusFilter === 'ALL'
+        ? byKeyword
+        : byKeyword.filter((member) => member.status === statusFilter)
+
+    const sorted = [...byStatus]
+    sorted.sort((a, b) => {
+      if (sortBy === 'NAME_ASC') {
+        return String(a.fullName ?? '').localeCompare(String(b.fullName ?? ''), 'vi')
+      }
+      if (sortBy === 'NAME_DESC') {
+        return String(b.fullName ?? '').localeCompare(String(a.fullName ?? ''), 'vi')
+      }
+      if (sortBy === 'ROLE_ASC') {
+        return String(a.roleName ?? '').localeCompare(String(b.roleName ?? ''), 'vi')
+      }
+      if (sortBy === 'JOINED_ASC') {
+        return new Date(a.joinedAt ?? 0) - new Date(b.joinedAt ?? 0)
+      }
+      if (sortBy === 'JOINED_DESC') {
+        return new Date(b.joinedAt ?? 0) - new Date(a.joinedAt ?? 0)
+      }
+      return 0
+    })
+    return sorted
+  }, [keyword, members, sortBy, statusFilter])
+
   return (
-    <PermissionRoute permission={PERMISSIONS.PROJECT_READ}>
+    <>
       <ProjectTabShell
         title="Thành viên dự án"
+        description="Quản lý nhân sự, phân quyền và trạng thái tham gia trong project này."
         actions={
           canManageMembers ? (
             <Button type="button" variant="primary" onClick={() => setShowAdd(true)}>
-              <Plus size={16} aria-hidden="true" />
+              <UserPlus size={16} aria-hidden="true" />
               Thêm thành viên
             </Button>
           ) : null
         }
       >
-        {actionError && (
-          <p className="modal__error" role="alert">
-            {actionError}
-          </p>
-        )}
-        {members.length === 0 ? (
-          <EmptyState>Project chưa có thành viên.</EmptyState>
-        ) : (
-          <div className="project-data-list">
-            {members.map((member) => (
-              <article key={member.id} className="project-data-row">
-                <div>
-                  <h3>{member.fullName}</h3>
-                  <p>{member.email}</p>
-                </div>
-                <span>{member.roleName}</span>
-                <span>{member.status}</span>
-                {canManageMembers && (
-                  <div className="project-row-actions">
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      onClick={() => setManagerMutation.mutate(member)}
-                      aria-label="Gán Project Manager"
-                      disabled={setManagerMutation.isPending}
-                    >
-                      <UserCheck size={16} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--ghost project-row-actions__text"
-                      onClick={() => deactivateMutation.mutate(member)}
-                      disabled={deactivateMutation.isPending}
-                    >
-                      Gỡ
-                    </button>
-                  </div>
-                )}
-              </article>
-            ))}
+        <section className="project-members-kpis" aria-label="Thống kê thành viên dự án">
+          <article className="project-members-kpi">
+            <span className="project-members-kpi__icon project-members-kpi__icon--blue">
+              <Users size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <p>Tổng thành viên</p>
+              <strong>{memberStats.total}</strong>
+            </div>
+          </article>
+          <article className="project-members-kpi">
+            <span className="project-members-kpi__icon project-members-kpi__icon--green">
+              <ShieldCheck size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <p>Đang hoạt động</p>
+              <strong>{memberStats.active}</strong>
+            </div>
+          </article>
+          <article className="project-members-kpi">
+            <span className="project-members-kpi__icon project-members-kpi__icon--orange">
+              <UserCheck size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <p>Vai trò quản lý</p>
+              <strong>{memberStats.managers}</strong>
+            </div>
+          </article>
+          <article className="project-members-kpi">
+            <span className="project-members-kpi__icon project-members-kpi__icon--gray">
+              <CircleAlert size={18} aria-hidden="true" />
+            </span>
+            <div>
+              <p>Vắng mặt</p>
+              <strong>{memberStats.inactive}</strong>
+            </div>
+          </article>
+        </section>
+
+        <section className="project-members-card">
+          <div className="project-members-toolbar">
+            <label className="project-members-search" htmlFor="project-member-search">
+              <Search size={16} aria-hidden="true" />
+              <input
+                id="project-member-search"
+                type="search"
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="Tìm kiếm thành viên, vai trò, email..."
+              />
+            </label>
+
+            <div className="project-members-toolbar__actions">
+              <label className="project-members-select" htmlFor="project-member-status">
+                <span>Lọc</span>
+                <select
+                  id="project-member-status"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                >
+                  <option value="ALL">Tất cả trạng thái</option>
+                  <option value="ACTIVE">Đang hoạt động</option>
+                  <option value="INACTIVE">Vắng mặt</option>
+                </select>
+              </label>
+
+              <label className="project-members-select" htmlFor="project-member-sort">
+                <span>Sắp xếp</span>
+                <select
+                  id="project-member-sort"
+                  value={sortBy}
+                  onChange={(event) => setSortBy(event.target.value)}
+                >
+                  <option value="JOINED_DESC">Ngày tham gia mới nhất</option>
+                  <option value="JOINED_ASC">Ngày tham gia cũ nhất</option>
+                  <option value="NAME_ASC">Tên A-Z</option>
+                  <option value="NAME_DESC">Tên Z-A</option>
+                  <option value="ROLE_ASC">Vai trò</option>
+                </select>
+              </label>
+            </div>
           </div>
-        )}
+
+          {actionError && (
+            <p className="modal__error" role="alert">
+              {actionError}
+            </p>
+          )}
+
+          <div className="project-members-table-wrap">
+            {members.length === 0 ? (
+              <div className="project-members-empty project-members-empty--inline">
+                <p className="project-members-empty__title">Project chưa có thành viên</p>
+                <p className="project-members-empty__text">
+                  Hãy thêm một thành viên từ Team để bắt đầu phân công công việc.
+                </p>
+                {canManageMembers && (
+                  <Button type="button" variant="primary" onClick={() => setShowAdd(true)}>
+                    <UserPlus size={16} aria-hidden="true" />
+                    Thêm thành viên đầu tiên
+                  </Button>
+                )}
+              </div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="project-members-empty project-members-empty--inline">
+                <p className="project-members-empty__title">Không có thành viên phù hợp</p>
+                <p className="project-members-empty__text">
+                  Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái.
+                </p>
+              </div>
+            ) : (
+              <table className="project-members-table">
+                <thead>
+                  <tr>
+                    <th>Thành viên</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày tham gia</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMembers.map((member) => {
+                    const isManager =
+                      member.isLeader ||
+                      String(member.roleName ?? '').toLowerCase().includes('manager')
+
+                    return (
+                      <tr key={member.id}>
+                        <td>
+                          <div className="project-member-person">
+                            <UserAvatar fullName={member.fullName} size="md" />
+                            <div>
+                              <strong>{member.fullName}</strong>
+                              <span>{member.email}</span>
+                              {member.employeeCode && <small>Mã NV: {member.employeeCode}</small>}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className={`project-member-badge project-member-badge--${
+                              isManager ? 'primary' : 'neutral'
+                            }`}
+                          >
+                            {isManager ? 'Project Manager' : member.roleName}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`project-member-status project-member-status--${
+                              member.status === 'ACTIVE' ? 'success' : 'muted'
+                            }`}
+                          >
+                            <span className="project-member-status__dot" />
+                            {statusLabel(member.status)}
+                          </span>
+                        </td>
+                        <td>{formatDate(member.joinedAt)}</td>
+                        <td>
+                          <div className="project-member-actions">
+                            {canManageMembers ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className="project-member-action"
+                                  onClick={() => setManagerMutation.mutate(member)}
+                                  aria-label="Gán Project Manager"
+                                  disabled={setManagerMutation.isPending || isManager}
+                                >
+                                  <UserCheck size={16} aria-hidden="true" />
+                                  Gán PM
+                                </button>
+                                <button
+                                  type="button"
+                                  className="project-member-action project-member-action--danger"
+                                  onClick={() => deactivateMutation.mutate(member)}
+                                  disabled={deactivateMutation.isPending || member.status !== 'ACTIVE'}
+                                >
+                                  <CircleAlert size={16} aria-hidden="true" />
+                                  Gỡ
+                                </button>
+                              </>
+                            ) : (
+                              <span className="project-member-actions__hint">
+                                <Clock3 size={16} aria-hidden="true" />
+                                Chỉ xem
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <footer className="project-members-footer">
+            <p>
+              Hiển thị <strong>{filteredMembers.length}</strong> / {members.length} thành viên
+            </p>
+            <p>
+              Quản lý dự án: <strong>{project?.managerName ?? '—'}</strong>
+            </p>
+          </footer>
+        </section>
 
         {showAdd && (
           <AddProjectMemberModal
@@ -1756,19 +1867,17 @@ export function ProjectMembersPage() {
           />
         )}
       </ProjectTabShell>
-    </PermissionRoute>
+    </>
   )
 }
 
 export function ProjectDocsPage() {
   const { project } = useProject()
-  const { can } = usePermission()
   const queryClient = useQueryClient()
   const [error, setError] = useState('')
 
   const canUpload =
-    can(PERMISSIONS.PROJECT_DOC_READ) &&
-    (project?.isCurrentUserTeamLeader || project?.isCurrentUserProjectManager)
+    project?.isCurrentUserTeamLeader || project?.isCurrentUserProjectManager
 
   const { data: attachments = [] } = useQuery({
     queryKey: ['projects', project?.id, 'attachments'],
@@ -1790,7 +1899,7 @@ export function ProjectDocsPage() {
   })
 
   return (
-    <PermissionRoute permission={PERMISSIONS.PROJECT_DOC_READ}>
+    <>
       <ProjectTabShell
         title="Tài liệu"
         actions={
@@ -1834,7 +1943,7 @@ export function ProjectDocsPage() {
           </div>
         )}
       </ProjectTabShell>
-    </PermissionRoute>
+    </>
   )
 }
 
@@ -1847,8 +1956,8 @@ export function ProjectActivityPage() {
   })
 
   return (
-    <PermissionRoute permission={PERMISSIONS.PROJECT_ACTIVITY_READ}>
-      <ProjectTabShell title="Activity Log">
+    <>
+      <ProjectTabShell title="Lịch sử hoạt động">
         {logs.length === 0 ? (
           <EmptyState>Chưa có lịch sử hoạt động.</EmptyState>
         ) : (
@@ -1867,6 +1976,6 @@ export function ProjectActivityPage() {
           </div>
         )}
       </ProjectTabShell>
-    </PermissionRoute>
+    </>
   )
 }

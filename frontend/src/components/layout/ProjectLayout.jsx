@@ -6,6 +6,7 @@ import {
   Archive,
   ArrowLeft,
   ArrowRight,
+  CalendarDays,
   CheckCircle2,
   Pencil,
   PlayCircle,
@@ -31,6 +32,11 @@ import Modal from '../ui/Modal'
 import { useProject } from '../../hooks/useProject'
 import ProjectFormModal from '../../pages/projects/components/ProjectFormModal'
 import ProjectTabs from './ProjectTabs'
+
+function formatDate(value) {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat('vi-VN').format(new Date(value))
+}
 
 function ActivationChecklistItem({ done, title, description }) {
   const Icon = done ? CheckCircle2 : XCircle
@@ -240,7 +246,11 @@ export default function ProjectLayout() {
             <p className="project-layout__code">{project.code}</p>
             <h1 className="project-layout__title">{project.name}</h1>
             <p className="project-layout__meta">
-              {project.teamName} · {project.managerName}
+              Quản lý: <strong>{project.managerName}</strong>
+            </p>
+            <p className="project-layout__meta project-layout__meta--date">
+              <CalendarDays size={15} aria-hidden="true" />
+              {formatDate(project.startDate)} - {formatDate(project.endDate)}
             </p>
           </div>
           <span className={`project-status project-status--${project.status.toLowerCase()}`}>
@@ -249,21 +259,6 @@ export default function ProjectLayout() {
         </div>
 
         <div className="project-layout__actions">
-          {(can(PERMISSIONS.PROJECT_MANAGE) || project.isCurrentUserTeamLeader) && (
-            <Button
-              type="button"
-              variant="ghost"
-              className="project-layout__action"
-              onClick={() => {
-                setActionError('')
-                setShowEdit(true)
-              }}
-            >
-              <Pencil size={16} aria-hidden="true" />
-              Chỉnh sửa
-            </Button>
-          )}
-
           {(can(PERMISSIONS.PROJECT_MANAGE) || project.isCurrentUserTeamLeader) &&
             project.status === PROJECT_STATUS.DRAFT && (
               <Button
@@ -279,6 +274,30 @@ export default function ProjectLayout() {
                 Kích hoạt dự án
               </Button>
             )}
+
+          <Link
+            to={`/projects/${project.id}/members`}
+            className="btn btn--ghost project-layout__action"
+          >
+            <Users size={16} aria-hidden="true" />
+            Quản lý thành viên
+          </Link>
+
+          {(can(PERMISSIONS.PROJECT_MANAGE) || project.isCurrentUserTeamLeader) && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="project-layout__action"
+              onClick={() => {
+                setActionError('')
+                setShowEdit(true)
+              }}
+              title="Chỉnh sửa dự án"
+            >
+              <Pencil size={16} aria-hidden="true" />
+              Chỉnh sửa
+            </Button>
+          )}
 
           {can(PERMISSIONS.PROJECT_MANAGE) &&
             project.status === PROJECT_STATUS.ACTIVE && (
